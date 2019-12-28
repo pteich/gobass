@@ -18,7 +18,12 @@ import (
 	"unsafe"
 	"errors"
 )
+type Channel uint64
 
+var(
+	codes=map[int]string {c.BASS_OK: "all is OK", C.BASS_ERROR_MEM:  "memory error", C.BASS_ERROR_FILEOPEN	: "can't open the file", C.BASS_ERROR_DRIVER: "can't find a free/valid driver", c.BASS_ERROR_BUFLOST: "the sample buffer was lost", C.BASS_ERROR_HANDLE: "invalid handle", BASS_ERROR_FORMAT: "unsupported sample format", C.BASS_ERROR_POSITION: "invalid position", C.BASS_ERROR_INIT: "BASS_Init has not been successfully called", C.BASS_ERROR_START: "BASS_Start has not been successfully called", C.BASS_ERROR_SSL: "SSL/HTTPS support isn't available", c.BASS_ERROR_ALREADY: "already initialized/paused/whatever", C.BASS_ERROR_NOTAUDIO: "NOTAUDIO", C.BASS_ERROR_NOCHAN: "can't get a free channel", C.BASS_ERROR_ILLTYPE: "an illegal type was specified", C.BASS_ERROR_ILLPARAM]: "an illegal parameter was specified", C.BASS_ERROR_NO3D: "no 3D support", C.BASS_ERROR_NOEAX: "no EAX support", C.BASS_ERROR_DEVICE: "illegal device number", C.BASS_ERROR_NOPLAY: "not playing", C.BASS_ERROR_FREQ: "illegal sample rate", C.BASS_ERROR_NOTFILE: "the stream is not a file stream", C.BASS_NOHW: "no hardware voices available", C.BASS_ERROR_EMPTY: "the MOD music has no sequence data", C.BASS_ERROR_NONET: "no internet connection could be opened", C.BASS_ERROR_CREATE: "couldn't create the file", C.BASS_ERROR_NOFX: "effects are not available", C.BASS_ERROR_NOTAVAIL: "requested data is not available", C.BASS_ERROR_DECODE: "the channel is/isn't a 'decoding channel", C.BASS_ERROR_DX: "a sufficient DirectX version is not installed", C.BASS_ERROR_TIMEOUT: "connection timedout", C.BASS_ERROR_FILEFORM: "unsupported file format", C.BASS_ERROR_SPEAKER: "unavailable speaker", C.BASS_ERROR_VERSION: "invalid BASS version (used by add-ons)", C.BASS_ERROR_CODEC: "codec is not available/supported", C.BASS_ERROR_ENDED: "the channel/file has ended", C.BASS_ERROR_BUSY: "the device is busy", C.BASS_ERROR_UNSTREAMABLE: "BASS_ERROR_UNSTREAMABLE", C.BASS_ERROR_UNKNOWN: "some other mystery problem"}
+
+)
 /*
 Init
 BOOL BASSDEF(BASS_Init)(int device, DWORD freq, DWORD flags, void *win, void *dsguid);
@@ -89,7 +94,7 @@ func SetVol(v float32) (bool, error) {
 
 // StreamCreateURL
 // HSTREAM BASSDEF(BASS_StreamCreateURL)(const char *url, DWORD offset, DWORD flags, DOWNLOADPROC *proc, void *user);
-func StreamCreateURL(url string) (int, error) {
+func StreamCreateURL(url string) (Channel, error) {
 	ch := C.BASS_StreamCreateURL(C.CString(url), 0, C.BASS_STREAM_BLOCK|C.BASS_STREAM_STATUS|C.BASS_STREAM_AUTOFREE, nil, nil)
 	if ch != 0 {
 		return int(ch), nil
@@ -100,7 +105,7 @@ func StreamCreateURL(url string) (int, error) {
 
 // BASS_StreamCreateFile
 // HSTREAM BASSDEF(BASS_StreamCreateFile)(BOOL mem, const void *file, QWORD offset, QWORD length, DWORD flags);
-func StreamCreateFile(file string) (int, error) {
+func StreamCreateFile(file string) (Channel, error) {
 	ch := C.BASS_StreamCreateFile(0, unsafe.Pointer(C.CString(file)), 0, 0, C.BASS_ASYNCFILE|C.BASS_STREAM_AUTOFREE)
 	if ch != 0 {
 		return int(ch), nil
@@ -111,8 +116,8 @@ func StreamCreateFile(file string) (int, error) {
 
 // ChannelPlay
 // BOOL BASSDEF(BASS_ChannelPlay)(DWORD handle, BOOL restart);
-func ChannelPlay(ch int) (bool, error) {
-	if C.BASS_ChannelPlay(C.DWORD(ch), 1) != 0 {
+func (self Channel) ChannelPlay() (bool, error) {
+	if C.BASS_ChannelPlay(self, 1) != 0 {
 		return true, nil
 	} else {
 		return false, errMsg(int(C.BASS_ErrorGetCode()))
@@ -121,8 +126,8 @@ func ChannelPlay(ch int) (bool, error) {
 
 // ChannelPause
 // BOOL BASSDEF(BASS_ChannelPause)(DWORD handle);
-func ChannelPause(ch int) (bool, error) {
-	if C.BASS_ChannelPause(C.DWORD(ch)) != 0 {
+func (self Channel) ChannelPause() (bool, error) {
+	if C.BASS_ChannelPause(self) != 0 {
 		return true, nil
 	} else {
 		return false, errMsg(int(C.BASS_ErrorGetCode()))
@@ -131,8 +136,8 @@ func ChannelPause(ch int) (bool, error) {
 
 // ChannelStop
 // BOOL BASSDEF(BASS_ChannelStop)(DWORD handle);
-func ChannelStop(ch int) (bool, error) {
-	if C.BASS_ChannelStop(C.DWORD(ch)) != 0 {
+func (self Channel) ChannelStop() (bool, error) {
+	if C.BASS_ChannelStop(self) != 0 {
 		return true, nil
 	} else {
 		return false, errMsg(int(C.BASS_ErrorGetCode()))
@@ -141,8 +146,8 @@ func ChannelStop(ch int) (bool, error) {
 
 // ChannelStatus
 // DWORD BASSDEF(BASS_ChannelIsActive)(DWORD handle);
-func ChannelStatus(ch int) (c uint, s string) {
-	c = uint(C.BASS_ChannelIsActive(C.DWORD(ch)))
+func (self Channel) ChannelStatus() (c uint, s string) {
+	c = uint(C.BASS_ChannelIsActive(self))
 	switch c {
 	case 0:
 		s = "BASS_ACTIVE_STOPPED"
@@ -162,9 +167,9 @@ func ChannelStatus(ch int) (c uint, s string) {
 
 // ChannelGetAttribute
 // BOOL BASSDEF(BASS_ChannelGetAttribute)(DWORD handle, DWORD attrib, float *value);
-func ChannelGetAttribute(ch int, attrib int) (float32, error) {
-	var cvalue *C.float
-	if C.BASS_ChannelGetAttribute(C.DWORD(ch), C.DWORD(attrib), cvalue) != 0 {
+func (self Channel) ChannelGetAttribute(attrib int) (float32, error) {
+	var cvalue C.float
+	if C.BASS_ChannelGetAttribute(self, C.DWORD(attrib), &cvalue) != 0 {
 		if v, err := strconv.ParseFloat(fmt.Sprintf("%v", cvalue), 32); err != nil {
 			return -1, nil
 		} else {
@@ -177,8 +182,8 @@ func ChannelGetAttribute(ch int, attrib int) (float32, error) {
 
 // ChannelSetAttribute
 // BOOL BASSDEF(BASS_ChannelSetAttribute)(DWORD handle, DWORD attrib, float value);
-func ChannelSetAttribute(ch int, attrib int, value float32) (bool, error) {
-	if C.BASS_ChannelSetAttribute(C.DWORD(ch), C.DWORD(attrib), C.float(value)) != 0 {
+func (self Channel) ChannelSetAttribute(attrib int, value float32) (bool, error) {
+	if C.BASS_ChannelSetAttribute(self, C.DWORD(attrib), C.float(value)) != 0 {
 		return true, nil
 	} else {
 		return false, errMsg(int(C.BASS_ErrorGetCode()))
@@ -187,8 +192,8 @@ func ChannelSetAttribute(ch int, attrib int, value float32) (bool, error) {
 
 //ChannelGetLevel
 //DWORD BASSDEF(BASS_ChannelGetLevel)(DWORD handle);
-func ChannelGetLevel(ch int) (c int, e error) {
-	c = int(C.BASS_ChannelGetLevel(C.DWORD(ch)))
+func (self Channel) ChannelGetLevel(ch int) (c int, e error) {
+	c = int(C.BASS_ChannelGetLevel(self)
 	if c == -1 {
 		return 0, errMsg(int(C.BASS_ErrorGetCode()))
 	}
@@ -278,43 +283,6 @@ func RecordStart(freq int, chans int, flags int, proc RecordCallback) (int, erro
 type RecordCallback = func(handle C.HRECORD, buffer *C.char, length C.DWORD, user *C.char) bool
 
 func errMsg(c int) error {
-	codes := make(map[int]string)
-	codes[0] = "all is OK"
-	codes[1] = "memory error"
-	codes[2] = "can't open the file"
-	codes[3] = "can't find a free/valid driver"
-	codes[4] = "the sample buffer was lost"
-	codes[5] = "invalid handle"
-	codes[6] = "unsupported sample format"
-	codes[7] = "invalid position"
-	codes[8] = "BASS_Init has not been successfully called"
-	codes[9] = "BASS_Start has not been successfully called"
-	codes[10] = "SSL/HTTPS support isn't available"
-	codes[14] = "already initialized/paused/whatever"
-	codes[18] = "can't get a free channel"
-	codes[19] = "an illegal type was specified"
-	codes[20] = "an illegal parameter was specified"
-	codes[21] = "no 3D support"
-	codes[22] = "no EAX support"
-	codes[23] = "illegal device number"
-	codes[24] = "not playing"
-	codes[25] = "illegal sample rate"
-	codes[27] = "the stream is not a file stream"
-	codes[29] = "no hardware voices available"
-	codes[31] = "the MOD music has no sequence data"
-	codes[32] = "no internet connection could be opened"
-	codes[33] = "couldn't create the file"
-	codes[34] = "effects are not available"
-	codes[37] = "requested data is not available"
-	codes[38] = "the channel is/isn't a 'decoding channel'"
-	codes[39] = "a sufficient DirectX version is not installed"
-	codes[40] = "connection timedout"
-	codes[41] = "unsupported file format"
-	codes[42] = "unavailable speaker"
-	codes[43] = "invalid BASS version (used by add-ons)"
-	codes[44] = "codec is not available/supported"
-	codes[45] = "the channel/file has ended"
-	codes[46] = "the device is busy"
-	codes[-1] = "some other mystery problem"
+
 	return errors.New(codes[c])
 }
