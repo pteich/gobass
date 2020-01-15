@@ -4,10 +4,10 @@
 package bass
 
 /*
-#cgo linux CFLAGS: -I/usr/include -I.
+#cgo linux CFLAGS: -I/usr/include -I${SRCDIR}
 #cgo linux LDFLAGS: -L${SRCDIR} -L/usr/lib -Wl,-rpath=\$ORIGIN -lbass
-#cgo windows CFLAGS: -I.
-#cgo windows LDFLAGS: -lbass -L.
+#cgo windows CFLAGS: -I${SRCDIR}
+#cgo windows LDFLAGS: -lbass
 #include "bass.h"
 #include "stdlib.h"
 */
