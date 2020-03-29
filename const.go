@@ -2,8 +2,6 @@
 package bass
 
 /*
-#cgo linux CFLAGS: -I/usr/include -I.
-#cgo linux LDFLAGS: -L${SRCDIR} -L/usr/lib -Wl,-rpath=\$ORIGIN -lbass
 #include "bass.h"
 */
 import "C"

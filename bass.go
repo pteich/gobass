@@ -3,11 +3,8 @@
 
 package bass
 
+
 /*
-#cgo linux CFLAGS: -I/usr/include -I${SRCDIR}
-#cgo linux LDFLAGS: -L${SRCDIR} -L/usr/lib -Wl,-rpath=\$ORIGIN -lbass
-#cgo windows CFLAGS: -I${SRCDIR}
-#cgo windows LDFLAGS: -lbass
 #include "bass.h"
 #include "stdlib.h"
 */
@@ -16,19 +13,24 @@ import "C"
 import (
 	"fmt"
 	"strconv"
+
 	"unsafe"
 )
 
+type cuint=C.DWORD
+type culong=C.QWORD
+
+
 type SyncProc C.SYNCPROC
 
-type Channel uint64
-func (self Channel) cint() C.ulong {
-	return C.ulong(self)
+type Channel uint32
+func (self Channel) cint() cuint {
+	return cuint(self)
 }
 
-type Sample uint64
-func (self Sample) cint() C.ulong {
-	return C.ulong(self)
+type Sample uint32
+func (self Sample) cint() cuint {
+	return cuint(self)
 }
 type Handle interface {
 	cint() C.ulong
@@ -37,23 +39,12 @@ type Handle interface {
 
 
 
+
 var(
 	codes=map[int]string {C.BASS_OK: "all is OK", C.BASS_ERROR_MEM:  "memory error", C.BASS_ERROR_FILEOPEN	: "can't open the file", C.BASS_ERROR_DRIVER: "can't find a free/valid driver", C.BASS_ERROR_BUFLOST: "the sample buffer was lost", C.BASS_ERROR_HANDLE: "invalid handle", BASS_ERROR_FORMAT: "unsupported sample format", C.BASS_ERROR_POSITION: "invalid position", C.BASS_ERROR_INIT: "BASS_Init has not been successfully called", C.BASS_ERROR_START: "BASS_Start has not been successfully called", C.BASS_ERROR_SSL: "SSL/HTTPS support isn't available", C.BASS_ERROR_ALREADY: "already initialized/paused/whatever", C.BASS_ERROR_NOTAUDIO: "NOTAUDIO", C.BASS_ERROR_NOCHAN: "can't get a free channel", C.BASS_ERROR_ILLTYPE: "an illegal type was specified", C.BASS_ERROR_ILLPARAM: "an illegal parameter was specified", C.BASS_ERROR_NO3D: "no 3D support", C.BASS_ERROR_NOEAX: "no EAX support", C.BASS_ERROR_DEVICE: "illegal device number", C.BASS_ERROR_NOPLAY: "not playing", C.BASS_ERROR_FREQ: "illegal sample rate", C.BASS_ERROR_NOTFILE: "the stream is not a file stream", C.BASS_ERROR_NOHW: "no hardware voices available", C.BASS_ERROR_EMPTY: "the MOD music has no sequence data", C.BASS_ERROR_NONET: "no internet connection could be opened", C.BASS_ERROR_CREATE: "couldn't create the file", C.BASS_ERROR_NOFX: "effects are not available", C.BASS_ERROR_NOTAVAIL: "requested data is not available", C.BASS_ERROR_DECODE: "the channel is/isn't a 'decoding channel", C.BASS_ERROR_DX: "a sufficient DirectX version is not installed", C.BASS_ERROR_TIMEOUT: "connection timedout", C.BASS_ERROR_FILEFORM: "unsupported file format", C.BASS_ERROR_SPEAKER: "unavailable speaker", C.BASS_ERROR_VERSION: "invalid BASS version (used by add-ons)", C.BASS_ERROR_CODEC: "codec is not available/supported", C.BASS_ERROR_ENDED: "the channel/file has ended", C.BASS_ERROR_BUSY: "the device is busy", C.BASS_ERROR_UNSTREAMABLE: "BASS_ERROR_UNSTREAMABLE", C.BASS_ERROR_UNKNOWN: "some other mystery problem"}
 	streamMemory=map[Channel]unsafe.Pointer{} // Here we store the pointers to allocated memory used to store data for a stream. This is only used if you loada  *stream* *from* memory.
 )
-/*
-Init
-BOOL BASSDEF(BASS_Init)(int device, DWORD freq, DWORD flags, void *win, void *dsguid);
-*/
-func Init(device int, freq int, flags int, hwnd, clsid uintptr) (bool, error) {
-	window:=unsafe.Pointer(hwnd)
-	gid:=unsafe.Pointer(clsid)
-	if C.BASS_Init(C.int(device), C.DWORD(freq), C.DWORD(flags), (*C.struct_HWND__)(window), (*C.struct__GUID)(gid)) != 0 {
-		return true, nil
-	} else {
-		return false, errMsg()
-	}
-}
+
 
 /*
 Free
@@ -113,9 +104,9 @@ func SetVolume(v float32) (bool, error) {
 
 // StreamCreateURL
 // HSTREAM BASSDEF(BASS_StreamCreateURL)(const char *url, DWORD offset, DWORD flags, DOWNLOADPROC *proc, void *user);
-func StreamCreateURL(url string, flags int) (Channel, error) {
+func StreamCreateURL(url string, flags uint) (Channel, error) {
 	curl:=C.CString(url)
-	ch:=Channel(C.BASS_StreamCreateURL(curl, 0, C.ulong(flags), nil, nil))
+	ch:=Channel(C.BASS_StreamCreateURL(curl, 0, cuint(flags), nil, nil))
 	C.free((unsafe.Pointer)(curl))
 	if ch != 0 {
 		return ch, nil
@@ -125,7 +116,7 @@ func StreamCreateURL(url string, flags int) (Channel, error) {
 }
 
 func (self *Channel) SetSync(synctype, param uint64, callback *C.SYNCPROC, userdata unsafe.Pointer) (uint64, error) {
-	c:=uint64(C.BASS_ChannelSetSync(self.cint(), C.ulong(synctype), C.ulonglong(param), callback, userdata))
+	c:=uint64(C.BASS_ChannelSetSync(self.cint(), cuint(synctype), culong(param), callback, userdata))
 	if c!=0 { return c, nil}
 	return 0, errMsg()
 }
@@ -142,7 +133,7 @@ func StreamCreateFile(data interface{}, offset, flags int) (Channel, error) {
 			should=1
 			ptr=unsafe.Pointer(C.CBytes(data.([]byte)))
 }
-	ch:=Channel(C.BASS_StreamCreateFile(should, ptr, C.ulonglong(offset), C.ulonglong(length), C.ulong(flags)))
+	ch:=Channel(C.BASS_StreamCreateFile(should, ptr, culong(offset), culong(length), cuint(flags)))
 
 	if ch != 0 {
 		switch should {
@@ -154,6 +145,7 @@ func StreamCreateFile(data interface{}, offset, flags int) (Channel, error) {
 		return 0, errMsg()
 	}
 }
+
 
 
 
@@ -221,11 +213,11 @@ func (self Channel) GetAttribute(attrib int) (float32, error) {
 
 // ChannelSetAttribute
 // BOOL BASSDEF(BASS_ChannelSetAttribute)(DWORD handle, DWORD attrib, float value);
-func (self Channel) SetAttribute(attrib int, value float32) (bool, error) {
+func (self Channel) SetAttribute(attrib int, value float32) (error) {
 	if C.BASS_ChannelSetAttribute(self.cint(), C.DWORD(attrib), C.float(value)) != 0 {
-		return true, nil
+		return nil
 	} else {
-		return false, errMsg()
+		return errMsg()
 	}
 }
 
@@ -322,38 +314,38 @@ func (self Channel) StreamFree() error {
 	return nil
 }
 func (self Channel) SlideAttribute(attrib uint64, value float32, time uint64) error {
-	if C.BASS_ChannelSlideAttribute(self.cint(), C.ulong(attrib), C.float(value), C.ulong(time))!=1 {
+	if C.BASS_ChannelSlideAttribute(self.cint(), cuint(attrib), C.float(value), cuint(time))!=1 {
 		return errMsg()
 }
 	return nil
 }
 
 func (self Channel) SetPosition(pos, mode uint64) {
-	if C.BASS_ChannelSetPosition(self.cint(), C.ulonglong(pos), C.ulong(mode))!=1 {
+	if C.BASS_ChannelSetPosition(self.cint(), culong(pos), cuint(mode))!=1 {
 		errMsg()
 	}
 }
 
 
-func (self Channel) GetPosition(mode uint64) {
-	if C.BASS_ChannelGetPosition(self.cint(), C.ulong(mode))!=1 {
-		errMsg()
-	}
+func (self Channel) GetPosition(mode uint64) (uint64, error) {
+	val:=C.BASS_ChannelGetPosition(self.cint(), C.DWORD(mode))
+	if val==0 { return 0, errMsg() }
+	return uint64(val), nil
 }
 
 func SampleLoad(data interface{}, offset, max uint64, flags int) (Sample, error) {
 	var ptr unsafe.Pointer
 	var should C.int=0
-	var length C.ulong=0
+	var length cuint=0
 	switch data.(type) {
 		case string: ptr=unsafe.Pointer(C.CString(data.(string)))
 		case []byte:
 			should=1
 			databytes:=data.([]byte)
 			ptr=unsafe.Pointer(C.CBytes(databytes))
-			length=C.ulong(len(databytes))
+			length=cuint(len(databytes))
 }
-	ch:=Sample(C.BASS_SampleLoad(should, ptr, C.ulonglong(offset), length, C.ulong(max), C.ulong(flags)))
+	ch:=Sample(C.BASS_SampleLoad(should, ptr, culong(offset), length, cuint(max), cuint(flags)))
 		C.free(ptr)
 	if ch != 0 {
 		return ch, nil
@@ -394,4 +386,15 @@ func IsStarted() bool {
 		return true
 	}
 	return false
+}
+
+func (self Channel) Bytes2Seconds(bytes uint64) (float64, error) {
+	val:=C.BASS_ChannelBytes2Seconds(self.cint(), C.QWORD(bytes))
+	if val==0 { return 0, errMsg() }
+	return float64(val), nil
+}
+func (self Channel) GetLength(mode uint64) (uint64, error) {
+	val:=C.BASS_ChannelGetLength(self.cint(), C.DWORD(mode))
+	if val==0 { return 0, errMsg() }
+	return uint64(val), nil
 }
