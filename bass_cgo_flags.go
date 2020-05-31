@@ -9,5 +9,6 @@ package bass
 #cgo darwin,amd64 LDFLAGS: -lbass_darwin_amd64
 #include "bass.h"
 #include "stdlib.h"
+#cgo CFLAGS: -I${SRCDIR}/include
 */
 import "C"

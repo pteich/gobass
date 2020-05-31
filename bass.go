@@ -13,7 +13,6 @@ import "C"
 import (
 	"fmt"
 	"strconv"
-
 	"unsafe"
 )
 
@@ -24,6 +23,22 @@ type culong=C.QWORD
 type SyncProc C.SYNCPROC
 
 type Channel uint32
+// An error returned by any function. Call getErrorCode to get the BASS error code contained inside.
+type BASS_Error struct {
+	Kind int
+	Message string
+
+}
+func (self BASS_Error) Error() string { return self.Message }
+// Gets the BASS error code contained in the value. It'll panic if this error value isn't of type BASS_Error.
+func ErrorKind(err error) int {
+	if err==nil { return 0 }
+	return err.(BASS_Error).Kind
+}
+// Returns true if the passed in error matches kind, which must be a BASS error code
+func ErrorIsKind(err error, kind int) bool {
+	return ErrorKind(err)==kind
+}
 func (self Channel) cint() cuint {
 	return cuint(self)
 }
@@ -41,7 +56,7 @@ type Handle interface {
 
 
 var(
-	codes=map[int]string {C.BASS_OK: "all is OK", C.BASS_ERROR_MEM:  "memory error", C.BASS_ERROR_FILEOPEN	: "can't open the file", C.BASS_ERROR_DRIVER: "can't find a free/valid driver", C.BASS_ERROR_BUFLOST: "the sample buffer was lost", C.BASS_ERROR_HANDLE: "invalid handle", BASS_ERROR_FORMAT: "unsupported sample format", C.BASS_ERROR_POSITION: "invalid position", C.BASS_ERROR_INIT: "BASS_Init has not been successfully called", C.BASS_ERROR_START: "BASS_Start has not been successfully called", C.BASS_ERROR_SSL: "SSL/HTTPS support isn't available", C.BASS_ERROR_ALREADY: "already initialized/paused/whatever", C.BASS_ERROR_NOTAUDIO: "NOTAUDIO", C.BASS_ERROR_NOCHAN: "can't get a free channel", C.BASS_ERROR_ILLTYPE: "an illegal type was specified", C.BASS_ERROR_ILLPARAM: "an illegal parameter was specified", C.BASS_ERROR_NO3D: "no 3D support", C.BASS_ERROR_NOEAX: "no EAX support", C.BASS_ERROR_DEVICE: "illegal device number", C.BASS_ERROR_NOPLAY: "not playing", C.BASS_ERROR_FREQ: "illegal sample rate", C.BASS_ERROR_NOTFILE: "the stream is not a file stream", C.BASS_ERROR_NOHW: "no hardware voices available", C.BASS_ERROR_EMPTY: "the MOD music has no sequence data", C.BASS_ERROR_NONET: "no internet connection could be opened", C.BASS_ERROR_CREATE: "couldn't create the file", C.BASS_ERROR_NOFX: "effects are not available", C.BASS_ERROR_NOTAVAIL: "requested data is not available", C.BASS_ERROR_DECODE: "the channel is/isn't a 'decoding channel", C.BASS_ERROR_DX: "a sufficient DirectX version is not installed", C.BASS_ERROR_TIMEOUT: "connection timedout", C.BASS_ERROR_FILEFORM: "unsupported file format", C.BASS_ERROR_SPEAKER: "unavailable speaker", C.BASS_ERROR_VERSION: "invalid BASS version (used by add-ons)", C.BASS_ERROR_CODEC: "codec is not available/supported", C.BASS_ERROR_ENDED: "the channel/file has ended", C.BASS_ERROR_BUSY: "the device is busy", C.BASS_ERROR_UNSTREAMABLE: "BASS_ERROR_UNSTREAMABLE", C.BASS_ERROR_UNKNOWN: "some other mystery problem"}
+	codes=map[int]string {OK: "all is OK", ERROR_MEM:  "memory error", ERROR_FILEOPEN	: "can't open the file", ERROR_DRIVER: "can't find a free/valid driver", ERROR_BUFLOST: "the sample buffer was lost", ERROR_HANDLE: "invalid handle", ERROR_FORMAT: "unsupported sample format", ERROR_POSITION: "invalid position", ERROR_INIT: "BASS_Init has not been successfully called", ERROR_START: "BASS_Start has not been successfully called", ERROR_SSL: "SSL/HTTPS support isn't available", ERROR_ALREADY: "already initialized/paused/whatever", ERROR_NOTAUDIO: "NOTAUDIO", ERROR_NOCHAN: "can't get a free channel", ERROR_ILLTYPE: "an illegal type was specified", ERROR_ILLPARAM: "an illegal parameter was specified", ERROR_NO3D: "no 3D support", ERROR_NOEAX: "no EAX support", ERROR_DEVICE: "illegal device number", ERROR_NOPLAY: "not playing", ERROR_FREQ: "illegal sample rate", ERROR_NOTFILE: "the stream is not a file stream", ERROR_NOHW: "no hardware voices available", ERROR_EMPTY: "the MOD music has no sequence data", ERROR_NONET: "no internet connection could be opened", ERROR_CREATE: "couldn't create the file", ERROR_NOFX: "effects are not available", ERROR_NOTAVAIL: "requested data is not available", ERROR_DECODE: "the channel is/isn't a 'decoding channel", ERROR_DX: "a sufficient DirectX version is not installed", ERROR_TIMEOUT: "connection timedout", ERROR_FILEFORM: "unsupported file format", ERROR_SPEAKER: "unavailable speaker", ERROR_VERSION: "invalid BASS version (used by add-ons)", ERROR_CODEC: "codec is not available/supported", ERROR_ENDED: "the channel/file has ended", ERROR_BUSY: "the device is busy", ERROR_UNSTREAMABLE: "BASS_ERROR_UNSTREAMABLE", ERROR_UNKNOWN: "some other mystery problem"}
 	streamMemory=map[Channel]unsafe.Pointer{} // Here we store the pointers to allocated memory used to store data for a stream. This is only used if you loada  *stream* *from* memory.
 )
 
@@ -238,21 +253,16 @@ func (self Channel) GetTags(tag int) string {
 }
 
 // PluginLoad
-func PluginLoad(file string) (handle int, err error) {
-	if h := C.BASS_PluginLoad(C.CString(file), 0); h != 0 {
-		return int(h), nil
-	} else {
-		return 0, errMsg()
-	}
+func PluginLoad(file string, flags int) (handle uint32, err error) {
+	cfile:=C.CString(file)
+	plugin:=C.BASS_PluginLoad(cfile, cuint(flags))
+	C.free(unsafe.Pointer(cfile))
+	return uint32(plugin), errMsg()
 }
 
 // PluginFree
-func PluginFree(handle int) (bool, error) {
-	if C.BASS_PluginFree(C.HPLUGIN(handle)) != 0 {
-		return true, nil
-	} else {
-		return false, errMsg()
-	}
+func PluginFree(handle uint32) (bool, error) {
+	return intToBool(C.BASS_PluginFree(cuint(handle))), errMsg()
 }
 
 
@@ -302,7 +312,7 @@ type RecordCallback func(handle C.HRECORD, buffer *C.char, length C.DWORD, user 
 func errMsg() error {
 	c:=int(C.BASS_ErrorGetCode())
 	if c==0 { return nil }
-	return fmt.Errorf("BASS error: %v, %v", c, codes[c])
+	return error(BASS_Error{Message: "BASS error: "+strconv.Itoa(c)+", "+codes[c], Kind: c})
 }
 
 func (self Channel) StreamFree() error {
@@ -320,10 +330,11 @@ func (self Channel) SlideAttribute(attrib uint64, value float32, time uint64) er
 	return nil
 }
 
-func (self Channel) SetPosition(pos, mode uint64) {
+func (self Channel) SetPosition(pos, mode uint64) error {
 	if C.BASS_ChannelSetPosition(self.cint(), culong(pos), cuint(mode))!=1 {
-		errMsg()
+		return errMsg()
 	}
+	return nil
 }
 
 
@@ -397,4 +408,17 @@ func (self Channel) GetLength(mode uint64) (uint64, error) {
 	val:=C.BASS_ChannelGetLength(self.cint(), C.DWORD(mode))
 	if val==0 { return 0, errMsg() }
 	return uint64(val), nil
+}
+func intToBool(val C.int) bool {
+	return val!=0
+}
+func (self Channel) IsSliding(attrib uint32) (bool, error) {
+	return intToBool(C.BASS_ChannelIsSliding(self.cint(), cuint(attrib))), errMsg()
+}
+func (self Channel) Seconds2Bytes(pos float64) (uint64, error) {
+	val:=uint64(C.BASS_ChannelSeconds2Bytes(self.cint(), C.double(pos)))
+	return val, errMsg()
+}
+func (self Channel) Flags(a, b uint32) uint32 {
+	return uint32(C.BASS_ChannelFlags(self.cint(), cuint(a), cuint(b)))
 }
