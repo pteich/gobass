@@ -353,11 +353,11 @@ func SampleLoad(data interface{}, offset, max uint64, flags int) (Sample, error)
 		case []byte:
 			should=1
 			databytes:=data.([]byte)
-			ptr=unsafe.Pointer(C.CBytes(databytes))
+			ptr=unsafe.Pointer(&databytes[0])
 			length=cuint(len(databytes))
 }
 	ch:=Sample(C.BASS_SampleLoad(should, ptr, culong(offset), length, cuint(max), cuint(flags)))
-		C.free(ptr)
+		if should==0 { C.free(ptr) }
 	if ch != 0 {
 		return ch, nil
 	} else {
