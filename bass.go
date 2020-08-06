@@ -138,30 +138,36 @@ func (self *Channel) SetSync(synctype, param uint64, callback *C.SYNCPROC, userd
 // BASS_StreamCreateFile
 // HSTREAM BASSDEF(BASS_StreamCreateFile)(BOOL mem, const void *file, QWORD offset, QWORD length, DWORD flags);
 func StreamCreateFile(data interface{}, offset, flags int) (Channel, error) {
-	var ptr unsafe.Pointer
-	var should C.int=0
-	var length uint64=0
+	var ch Channel
 	switch data.(type) {
-		case string: ptr=unsafe.Pointer(C.CString(data.(string)))
+		case unsafe.Pointer: ch=Channel(C.BASS_StreamCreateFile(1, data.(unsafe.Pointer), culong(offset), 0, cuint(flags)))
+		case string:
+			datastring:=C.CString(data.(string))
+		ch=Channel(C.BASS_StreamCreateFile(0, unsafe.Pointer(datastring), culong(offset), 0, cuint(flags)))
+		C.free(unsafe.Pointer(datastring))
 		case []byte:
-			length=uint64(len(data.([]byte)))
-			should=1
-			ptr=unsafe.Pointer(C.CBytes(data.([]byte)))
+		databytes:=C.CBytes(data.([]byte))
+		ch=Channel(C.BASS_StreamCreateFile(1, databytes, culong(offset), culong(len(data.([]byte))), cuint(flags)))
+		streamMemory[ch]=databytes
 }
-	ch:=Channel(C.BASS_StreamCreateFile(should, ptr, culong(offset), culong(length), cuint(flags)))
-
-	if ch != 0 {
-		switch should {
-			case 1: streamMemory[ch]=ptr
-			case 0: C.free(ptr)
-		}
-		return ch, nil
-	} else {
-		return 0, errMsg()
-	}
+	return ch, errMsg()
 }
 
 
+func SampleLoad(data interface{}, offset, max, flags int) (Sample, error) {
+	var ch Sample
+	switch data.(type) {
+		case unsafe.Pointer: ch=Sample(C.BASS_SampleLoad(1, data.(unsafe.Pointer), culong(offset), 0, cuint(max), cuint(flags)))
+		case string:
+			datastring:=C.CString(data.(string))
+		ch=Sample(C.BASS_SampleLoad(0, unsafe.Pointer(datastring), culong(offset), 0, cuint(max), cuint(flags)))
+		C.free(unsafe.Pointer(datastring))
+		case []byte:
+		databytes:=data.([]byte)
+		ch=Sample(C.BASS_SampleLoad(1, unsafe.Pointer(&databytes[0]), culong(offset), cuint(len(databytes)), cuint(max), cuint(flags)))
+}
+	return ch, errMsg()
+}
 
 
 
@@ -344,26 +350,8 @@ func (self Channel) GetPosition(mode uint64) (uint64, error) {
 	return uint64(val), nil
 }
 
-func SampleLoad(data interface{}, offset, max uint64, flags int) (Sample, error) {
-	var ptr unsafe.Pointer
-	var should C.int=0
-	var length cuint=0
-	switch data.(type) {
-		case string: ptr=unsafe.Pointer(C.CString(data.(string)))
-		case []byte:
-			should=1
-			databytes:=data.([]byte)
-			ptr=unsafe.Pointer(&databytes[0])
-			length=cuint(len(databytes))
-}
-	ch:=Sample(C.BASS_SampleLoad(should, ptr, culong(offset), length, cuint(max), cuint(flags)))
-		if should==0 { C.free(ptr) }
-	if ch != 0 {
-		return ch, nil
-	} else {
-		return 0, errMsg()
-	}
-}
+
+
 func (self Sample) Free() error {
 	if C.BASS_SampleFree(self.cint())==0 {
 		return errMsg()
@@ -419,6 +407,11 @@ func (self Channel) Seconds2Bytes(pos float64) (uint64, error) {
 	val:=uint64(C.BASS_ChannelSeconds2Bytes(self.cint(), C.double(pos)))
 	return val, errMsg()
 }
-func (self Channel) Flags(a, b uint32) uint32 {
-	return uint32(C.BASS_ChannelFlags(self.cint(), cuint(a), cuint(b)))
+func (self Channel) Flags(a, b uint32) (uint32, error) {
+	return uint32(C.BASS_ChannelFlags(self.cint(), cuint(a), cuint(b))), errMsg()
+}
+
+//Allocates C memory and coppies data to that C memory.
+func CopyBytes(data []byte) unsafe.Pointer {
+	return C.CBytes(data)
 }
