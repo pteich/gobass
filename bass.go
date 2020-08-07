@@ -137,10 +137,10 @@ func (self *Channel) SetSync(synctype, param uint64, callback *C.SYNCPROC, userd
 }
 // BASS_StreamCreateFile
 // HSTREAM BASSDEF(BASS_StreamCreateFile)(BOOL mem, const void *file, QWORD offset, QWORD length, DWORD flags);
-func StreamCreateFile(data interface{}, offset, flags int) (Channel, error) {
+func StreamCreateFile(data interface{}, offset, length, flags int) (Channel, error) {
 	var ch Channel
 	switch data.(type) {
-		case unsafe.Pointer: ch=Channel(C.BASS_StreamCreateFile(1, data.(unsafe.Pointer), culong(offset), 0, cuint(flags)))
+		case unsafe.Pointer: ch=Channel(C.BASS_StreamCreateFile(1, data.(unsafe.Pointer), culong(offset), length, cuint(flags)))
 		case string:
 			datastring:=C.CString(data.(string))
 		ch=Channel(C.BASS_StreamCreateFile(0, unsafe.Pointer(datastring), culong(offset), 0, cuint(flags)))
