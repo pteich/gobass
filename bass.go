@@ -15,7 +15,11 @@ import (
 	"strconv"
 	"unsafe"
 )
-
+//Stores a C byte array, with a pointer to the data and its length.
+type CBytes struct {
+	Data unsafe.Pointer
+	Length uint64
+}
 type cuint=C.DWORD
 type culong=C.QWORD
 
@@ -137,10 +141,12 @@ func (self *Channel) SetSync(synctype, param uint64, callback *C.SYNCPROC, userd
 }
 // BASS_StreamCreateFile
 // HSTREAM BASSDEF(BASS_StreamCreateFile)(BOOL mem, const void *file, QWORD offset, QWORD length, DWORD flags);
-func StreamCreateFile(data interface{}, offset, length, flags int) (Channel, error) {
+func StreamCreateFile(data interface{}, offset, flags int) (Channel, error) {
 	var ch Channel
 	switch data.(type) {
-		case unsafe.Pointer: ch=Channel(C.BASS_StreamCreateFile(1, data.(unsafe.Pointer), culong(offset), length, cuint(flags)))
+		case CBytes:
+			cdata:=data.(CBytes)
+			ch=Channel(C.BASS_StreamCreateFile(1, cdata, culong(offset), culong(cdata.Length), cuint(flags)))
 		case string:
 			datastring:=C.CString(data.(string))
 		ch=Channel(C.BASS_StreamCreateFile(0, unsafe.Pointer(datastring), culong(offset), 0, cuint(flags)))
@@ -157,7 +163,9 @@ func StreamCreateFile(data interface{}, offset, length, flags int) (Channel, err
 func SampleLoad(data interface{}, offset, max, flags int) (Sample, error) {
 	var ch Sample
 	switch data.(type) {
-		case unsafe.Pointer: ch=Sample(C.BASS_SampleLoad(1, data.(unsafe.Pointer), culong(offset), 0, cuint(max), cuint(flags)))
+		case CBytes:
+			cdata:=data.(CBytes)
+			ch=Sample(C.BASS_SampleLoad(1, cdata.Data, culong(offset), culong(cdata.Length), cuint(max), cuint(flags)))
 		case string:
 			datastring:=C.CString(data.(string))
 		ch=Sample(C.BASS_SampleLoad(0, unsafe.Pointer(datastring), culong(offset), 0, cuint(max), cuint(flags)))
@@ -412,6 +420,6 @@ func (self Channel) Flags(a, b uint32) (uint32, error) {
 }
 
 //Allocates C memory and coppies data to that C memory.
-func CopyBytes(data []byte) unsafe.Pointer {
-	return C.CBytes(data)
+func CopyBytes(data []byte) CBytes {
+	return CBytes{Data: C.CBYTES(data), Length: len(data)}
 }
