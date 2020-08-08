@@ -18,7 +18,7 @@ import (
 //Stores a C byte array, with a pointer to the data and its length.
 type CBytes struct {
 	Data unsafe.Pointer
-	Length uint64
+	Length int
 }
 type cuint=C.DWORD
 type culong=C.QWORD
@@ -146,7 +146,7 @@ func StreamCreateFile(data interface{}, offset, flags int) (Channel, error) {
 	switch data.(type) {
 		case CBytes:
 			cdata:=data.(CBytes)
-			ch=Channel(C.BASS_StreamCreateFile(1, cdata, culong(offset), culong(cdata.Length), cuint(flags)))
+			ch=Channel(C.BASS_StreamCreateFile(1, cdata.Data, culong(offset), culong(cdata.Length), cuint(flags)))
 		case string:
 			datastring:=C.CString(data.(string))
 		ch=Channel(C.BASS_StreamCreateFile(0, unsafe.Pointer(datastring), culong(offset), 0, cuint(flags)))
@@ -165,7 +165,7 @@ func SampleLoad(data interface{}, offset, max, flags int) (Sample, error) {
 	switch data.(type) {
 		case CBytes:
 			cdata:=data.(CBytes)
-			ch=Sample(C.BASS_SampleLoad(1, cdata.Data, culong(offset), culong(cdata.Length), cuint(max), cuint(flags)))
+			ch=Sample(C.BASS_SampleLoad(1, cdata.Data, culong(offset), cuint(cdata.Length), cuint(max), cuint(flags)))
 		case string:
 			datastring:=C.CString(data.(string))
 		ch=Sample(C.BASS_SampleLoad(0, unsafe.Pointer(datastring), culong(offset), 0, cuint(max), cuint(flags)))
@@ -421,5 +421,5 @@ func (self Channel) Flags(a, b uint32) (uint32, error) {
 
 //Allocates C memory and coppies data to that C memory.
 func CopyBytes(data []byte) CBytes {
-	return CBytes{Data: C.CBYTES(data), Length: len(data)}
+	return CBytes{Data: C.CBytes(data), Length: len(data)}
 }
