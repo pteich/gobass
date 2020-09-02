@@ -1,5 +1,5 @@
 image: Ubuntu
 install:
-  - cmd: where go
-  - cmd: where pacman
+  - sh: go get -u -v github.com/keithcat1/gobass
+
 
