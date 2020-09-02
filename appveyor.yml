@@ -1,2 +1,4 @@
+clone_folder: c:\projects\myproject
+
 cmd:
-  - where gcc
+  where gcc
