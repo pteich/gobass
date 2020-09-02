@@ -1,5 +1,4 @@
-clone_folder: c:\projects\myproject
-
+clone_folder: c:\py\gobass
 install:
   - cmd: where gcc
   - cmd: where go
