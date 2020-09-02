@@ -423,8 +423,13 @@ func (self Channel) Flags(a, b uint32) (uint32, error) {
 func CopyBytes(data []byte) CBytes {
 	return CBytes{Data: C.CBytes(data), Length: len(data)}
 }
-func GetDevice() (device int, err error) {
-	device=C.BASS_GetDevice()
+func GetDevice() (int, error) {
+	device:=int(C.BASS_GetDevice())
 	if device==0 { return device, errMsg() }
 	return device, nil
+}
+func SetDevice(device int) error {
+	val:=C.BASS_SetDevice(cuint(device))
+	if val==0 { return errMsg() }
+	return nil
 }
