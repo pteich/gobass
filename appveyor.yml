@@ -1,4 +1,5 @@
 clone_folder: c:\projects\myproject
 
-cmd:
-  where gcc
+install:
+  - cmd: where gcc
+  - cmd: where go
