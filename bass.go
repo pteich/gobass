@@ -254,7 +254,7 @@ func (self Channel) SlideAttribute(attrib uint64, value float32, time uint64) er
 	return boolToError(C.BASS_ChannelSlideAttribute(self.cint(), cuint(attrib), C.float(value), cuint(time)))
 }
 
-func (self Channel) SetPosition(pos, mode uint64) error {
+func (self Channel) SetPosition(pos, mode int64) error {
 	return boolToError(C.BASS_ChannelSetPosition(self.cint(), culong(pos), cuint(mode)))
 }
 
@@ -285,7 +285,7 @@ func IsStarted() bool {
 	return intToBool(C.BASS_IsStarted())
 }
 
-func (self Channel) Bytes2Seconds(bytes uint64) (float64, error) {
+func (self Channel) Bytes2Seconds(bytes int64) (float64, error) {
 	value:=float64(C.BASS_ChannelBytes2Seconds(self.cint(), C.QWORD(bytes)))
 	if value<0 {
 		return value, errMsg()
@@ -302,8 +302,8 @@ func intToBool(val C.int) bool {
 func (self Channel) IsSliding(attrib uint32) bool {
 	return intToBool(C.BASS_ChannelIsSliding(self.cint(), cuint(attrib)))
 }
-func (self Channel) Seconds2Bytes(pos float64) (uint64, error) {
-	val := uint64(C.BASS_ChannelSeconds2Bytes(self.cint(), C.double(pos)))
+func (self Channel) Seconds2Bytes(pos float64) (int64, error) {
+	val := int64(C.BASS_ChannelSeconds2Bytes(self.cint(), C.double(pos)))
 	if val<0 {
 		return val, errMsg()
 	} else {
