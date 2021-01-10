@@ -12,6 +12,7 @@ import "C"
 import (
 	"strconv"
 	"unsafe"
+	"sync"
 )
 
 //Stores a C byte array, with a pointer to the data and its length.
@@ -57,12 +58,13 @@ func (self Sample) cint() cuint {
 }
 
 type Handle interface {
-	cint() C.ulong
+	cint() C.DWORD
 }
 
 var (
 	codes        = map[int]string{OK: "all is OK", ERROR_MEM: "memory error", ERROR_FILEOPEN: "can't open the file", ERROR_DRIVER: "can't find a free/valid driver", ERROR_BUFLOST: "the sample buffer was lost", ERROR_HANDLE: "invalid handle", ERROR_FORMAT: "unsupported sample format", ERROR_POSITION: "invalid position", ERROR_INIT: "BASS_Init has not been successfully called", ERROR_START: "BASS_Start has not been successfully called", ERROR_SSL: "SSL/HTTPS support isn't available", ERROR_ALREADY: "already initialized/paused/whatever", ERROR_NOTAUDIO: "NOTAUDIO", ERROR_NOCHAN: "can't get a free channel", ERROR_ILLTYPE: "an illegal type was specified", ERROR_ILLPARAM: "an illegal parameter was specified", ERROR_NO3D: "no 3D support", ERROR_NOEAX: "no EAX support", ERROR_DEVICE: "illegal device number", ERROR_NOPLAY: "not playing", ERROR_FREQ: "illegal sample rate", ERROR_NOTFILE: "the stream is not a file stream", ERROR_NOHW: "no hardware voices available", ERROR_EMPTY: "the MOD music has no sequence data", ERROR_NONET: "no internet connection could be opened", ERROR_CREATE: "couldn't create the file", ERROR_NOFX: "effects are not available", ERROR_NOTAVAIL: "requested data is not available", ERROR_DECODE: "the channel is/isn't a 'decoding channel", ERROR_DX: "a sufficient DirectX version is not installed", ERROR_TIMEOUT: "connection timedout", ERROR_FILEFORM: "unsupported file format", ERROR_SPEAKER: "unavailable speaker", ERROR_VERSION: "invalid BASS version (used by add-ons)", ERROR_CODEC: "codec is not available/supported", ERROR_ENDED: "the channel/file has ended", ERROR_BUSY: "the device is busy", ERROR_UNSTREAMABLE: "BASS_ERROR_UNSTREAMABLE", ERROR_UNKNOWN: "some other mystery problem"}
 	streamMemory = map[Channel]unsafe.Pointer{} // Here we store the pointers to allocated memory used to store data for a stream. This is only used if you loada  *stream* *from* memory.
+	streamMemoryLock sync.RWMutex
 )
 
 /*
@@ -78,7 +80,7 @@ GetConfig
 DWORD BASSDEF(BASS_GetConfig)(DWORD option);
 */
 func GetConfig(option int) (int64, error) {
-	return longPairToError(C.BASS_GetConfig(C.ulong(option)))
+	return longPairToError(C.BASS_GetConfig(C.DWORD(option)))
 }
 
 /*
@@ -116,7 +118,7 @@ func (self *Channel) SetSync(synctype, param uint64, callback *C.SYNCPROC, userd
 // BASS_StreamCreateFile
 // HSTREAM BASSDEF(BASS_StreamCreateFile)(BOOL mem, const void *file, QWORD offset, QWORD length, DWORD flags);
 func StreamCreateFile(data interface{}, offset, flags int) (Channel, error) {
-	var ch C.ulong
+	var ch C.DWORD
 	switch data.(type) {
 	case CBytes:
 		cdata := data.(CBytes)
@@ -128,13 +130,15 @@ func StreamCreateFile(data interface{}, offset, flags int) (Channel, error) {
 	case []byte:
 		databytes := C.CBytes(data.([]byte))
 		ch = C.BASS_StreamCreateFile(1, databytes, culong(offset), culong(len(data.([]byte))), cuint(flags))
+		streamMemoryLock.Lock()
 		streamMemory[Channel(ch)] = databytes
+		streamMemoryLock.Unlock()
 	}
 	return channelToError(ch)
 }
 
 func SampleLoad(data interface{}, offset, max, flags int) (Sample, error) {
-	var ch C.ulong
+	var ch C.DWORD
 	switch data.(type) {
 	case CBytes:
 		cdata := data.(CBytes)
@@ -176,7 +180,7 @@ func (self Channel) IsActive() int64 {
 // BOOL BASSDEF(BASS_ChannelGetAttribute)(DWORD handle, DWORD attrib, float *value);
 func (self Channel) GetAttribute(attrib int) (float32, error) {
 	var cvalue C.float
-	result:=C.BASS_ChannelGetAttribute(self.cint(), C.ulong(attrib), &cvalue)
+	result:=C.BASS_ChannelGetAttribute(self.cint(), C.DWORD(attrib), &cvalue)
 	return float32(cvalue), boolToError(result)
 }
 // ChannelSetAttribute
@@ -244,7 +248,9 @@ func errMsg() error {
 }
 
 func (self Channel) StreamFree() error {
+	streamMemoryLock.RLock()
 	ptr, exists := streamMemory[self]
+	streamMemoryLock.RUnlock()
 	if exists == true {
 		C.free(ptr)
 	}
@@ -259,7 +265,7 @@ func (self Channel) SetPosition(pos, mode int64) error {
 }
 
 func (self Channel) GetPosition(mode uint64) (int64, error) {
-	return longlongPairToError(C.BASS_ChannelGetPosition(self.cint(), C.ulong(mode)))
+	return longlongPairToError(C.BASS_ChannelGetPosition(self.cint(), C.DWORD(mode)))
 }
 
 func (self Sample) Free() error {
@@ -322,7 +328,7 @@ func GetDevice() (int64, error) {
 	return longPairToError(C.BASS_GetDevice())
 }
 func SetDevice(device int) error {
-	return boolToError(C.BASS_SetDevice(C.ulong(device)))
+	return boolToError(C.BASS_SetDevice(C.DWORD(device)))
 }
 func boolToError(value C.int) error {
 	if value != 0 {
@@ -336,15 +342,19 @@ func pairToError(value C.int) (int, error) {
 func floatPairToError(value C.float) (float32, error) {
 	return float32(value), boolToError(C.int(value))
 }
-func longPairToError(value C.ulong) (int64, error) {
+func longPairToError(value C.DWORD) (int64, error) {
 	return int64(value), boolToError(C.int(value))
 }
-func channelToError(ch C.ulong) (Channel, error) {
+func channelToError(ch C.DWORD) (Channel, error) {
 	return Channel(ch), boolToError(C.int(ch))
 }
-func sampleToError(ch C.ulong) (Sample, error) {
+func sampleToError(ch C.DWORD) (Sample, error) {
 	return Sample(ch), boolToError(C.int(ch))
 }
-func longlongPairToError(value C.ulonglong) (int64, error) {
+func longlongPairToError(value C.QWORD) (int64, error) {
 	return int64(value), boolToError(C.int(value))
 }
+
+
+
+
