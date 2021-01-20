@@ -12,7 +12,7 @@ return 0;
 */
 import "C"
 
-func OptimizeSetPanVolumePitch(self Channel, pan, volume, pitch float32) error {
+func OptimizeSetPanVolumePitch(self Channel, pan, volume, pitch float64) error {
 	if C._BassOptimizeSetPanVolumePitch(self.cint(), C.float(pan), C.float(volume), C.float(pitch))==0 {
 		return nil
 	} else {

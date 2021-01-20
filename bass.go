@@ -93,12 +93,12 @@ func SetConfig(option, value int) error {
 
 // GetVol
 // float BASSDEF(BASS_GetVolume)();
-func GetVolume() (float32, error) {
+func GetVolume() (float64, error) {
 	return floatPairToError(C.BASS_GetVolume())
 }
 
 // SetVol
-func SetVolume(v float32) error {
+func SetVolume(v float64) error {
 	return boolToError(C.BASS_SetVolume(C.float(v)))
 }
 
@@ -178,14 +178,14 @@ func (self Channel) IsActive() int64 {
 
 // ChannelGetAttribute
 // BOOL BASSDEF(BASS_ChannelGetAttribute)(DWORD handle, DWORD attrib, float *value);
-func (self Channel) GetAttribute(attrib int) (float32, error) {
+func (self Channel) GetAttribute(attrib int) (float64, error) {
 	var cvalue C.float
 	result:=C.BASS_ChannelGetAttribute(self.cint(), C.DWORD(attrib), &cvalue)
-	return float32(cvalue), boolToError(result)
+	return float64(cvalue), boolToError(result)
 }
 // ChannelSetAttribute
 // BOOL BASSDEF(BASS_ChannelSetAttribute)(DWORD handle, DWORD attrib, float value);
-func (self Channel) SetAttribute(attrib int, value float32) error {
+func (self Channel) SetAttribute(attrib int, value float64) error {
 	return boolToError(C.BASS_ChannelSetAttribute(self.cint(), C.DWORD(attrib), C.float(value)))
 }
 
@@ -256,7 +256,7 @@ func (self Channel) StreamFree() error {
 	}
 	return boolToError(C.BASS_StreamFree(self.cint()))
 }
-func (self Channel) SlideAttribute(attrib uint64, value float32, time uint64) error {
+func (self Channel) SlideAttribute(attrib uint64, value float64, time uint64) error {
 	return boolToError(C.BASS_ChannelSlideAttribute(self.cint(), cuint(attrib), C.float(value), cuint(time)))
 }
 
@@ -339,8 +339,8 @@ func boolToError(value C.int) error {
 func pairToError(value C.int) (int, error) {
 	return int(value), boolToError(value)
 }
-func floatPairToError(value C.float) (float32, error) {
-	return float32(value), boolToError(C.int(value))
+func floatPairToError(value C.float) (float64, error) {
+	return float64(value), boolToError(C.int(value))
 }
 func longPairToError(value C.DWORD) (int64, error) {
 	return int64(value), boolToError(C.int(value))
