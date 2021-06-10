@@ -154,6 +154,7 @@ func SampleLoad(data interface{}, offset, max, flags int) (Sample, error) {
 	return sampleToError(ch)
 }
 
+
 // ChannelPlay
 // BOOL BASSDEF(BASS_ChannelPlay)(DWORD handle, BOOL restart);
 func (self Channel) Play(restart bool) error {
@@ -172,8 +173,13 @@ func (self Channel) Stop() error {
 	return boolToError(C.BASS_ChannelStop(self.cint()))
 }
 
-func (self Channel) IsActive() int64 {
-	return int64(C.BASS_ChannelIsActive(self.cint()))
+func (self Channel) IsActive() (int, error) {
+	active := int(C.BASS_ChannelIsActive(self.cint()))
+	if active==ACTIVE_STOPPED {
+		return active, errMsg()
+	} else {
+		return active, nil
+	}
 }
 
 // ChannelGetAttribute
@@ -354,7 +360,25 @@ func sampleToError(ch C.DWORD) (Sample, error) {
 func longlongPairToError(value C.QWORD) (int64, error) {
 	return int64(value), boolToError(C.int(value))
 }
-
-
-
-
+func intToError(value cuint) error {
+	if value==0 {
+		return errMsg()
+	} else {
+		return nil
+	}
+}
+func longToError(value culong) error {
+	if value!=0 {
+		return nil
+	} else {
+		return errMsg()
+	}
+}
+func StreamCreate(freq, chans, flags int, streamproc *C.STREAMPROC, userdata unsafe.Pointer) (Channel, error) {
+	channel := C.BASS_StreamCreate(cuint(freq), cuint(chans), cuint(flags), streamproc, userdata)
+	return channelToError(channel)
+}
+func (self Channel) StreamPutData(data []byte) (int, error) {
+	result := int(C.BASS_StreamPutData(self.cint(), unsafe.Pointer(&data[0]), cuint(len(data))))
+	return result, errMsg()
+}
