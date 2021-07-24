@@ -31,20 +31,6 @@ type BASS_Error int
 func (self BASS_Error) Error() string {
 	return "BASS error: "+codes[self]
 }
-
-
-
-
-
-// Gets the BASS error code contained in the value. It'll panic if this error value isn't of type BASS_Error.
-func ErrorKind(err error) int {
-	return int(err.(BASS_Error))
-}
-
-// Returns true if the passed in error matches kind, which must be a BASS error code
-func ErrorIsKind(err error, kind int) bool {
-	return ErrorKind(err) == kind
-}
 func (self Channel) cint() cuint {
 	return cuint(self)
 }
