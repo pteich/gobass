@@ -233,7 +233,10 @@ func errMsg() error {
 	c := BASS_Error(C.BASS_ErrorGetCode())
 	return c
 }
-
+// Returns the last error, if any, that was caused by a call to a BASS function. You should not normally call this function, all BASS functions in this package handle and return errors.
+func GetLastError() error {
+	return errMsg()
+}
 func (self Channel) StreamFree() error {
 	streamMemoryLock.RLock()
 	ptr, exists := streamMemory[self]
