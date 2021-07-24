@@ -10,7 +10,6 @@ package bass
 import "C"
 
 import (
-	"strconv"
 	"unsafe"
 	"sync"
 )
@@ -27,20 +26,19 @@ type SyncProc C.SYNCPROC
 
 type Channel uint32
 
-// An error returned by any function. Call getErrorCode to get the BASS error code contained inside.
-type BASS_Error struct {
-	Kind    int
-	Message string
+// An error code returned by any function.
+type BASS_Error int
+func (self BASS_Error) Error() string {
+	return "BASS error: "+codes[self]
 }
 
-func (self BASS_Error) Error() string { return self.Message }
+
+
+
 
 // Gets the BASS error code contained in the value. It'll panic if this error value isn't of type BASS_Error.
 func ErrorKind(err error) int {
-	if err == nil {
-		return 0
-	}
-	return err.(BASS_Error).Kind
+	return int(err.(BASS_Error))
 }
 
 // Returns true if the passed in error matches kind, which must be a BASS error code
@@ -62,7 +60,7 @@ type Handle interface {
 }
 
 var (
-	codes        = map[int]string{OK: "all is OK", ERROR_MEM: "memory error", ERROR_FILEOPEN: "can't open the file", ERROR_DRIVER: "can't find a free/valid driver", ERROR_BUFLOST: "the sample buffer was lost", ERROR_HANDLE: "invalid handle", ERROR_FORMAT: "unsupported sample format", ERROR_POSITION: "invalid position", ERROR_INIT: "BASS_Init has not been successfully called", ERROR_START: "BASS_Start has not been successfully called", ERROR_SSL: "SSL/HTTPS support isn't available", ERROR_ALREADY: "already initialized/paused/whatever", ERROR_NOTAUDIO: "NOTAUDIO", ERROR_NOCHAN: "can't get a free channel", ERROR_ILLTYPE: "an illegal type was specified", ERROR_ILLPARAM: "an illegal parameter was specified", ERROR_NO3D: "no 3D support", ERROR_NOEAX: "no EAX support", ERROR_DEVICE: "illegal device number", ERROR_NOPLAY: "not playing", ERROR_FREQ: "illegal sample rate", ERROR_NOTFILE: "the stream is not a file stream", ERROR_NOHW: "no hardware voices available", ERROR_EMPTY: "the MOD music has no sequence data", ERROR_NONET: "no internet connection could be opened", ERROR_CREATE: "couldn't create the file", ERROR_NOFX: "effects are not available", ERROR_NOTAVAIL: "requested data is not available", ERROR_DECODE: "the channel is/isn't a 'decoding channel", ERROR_DX: "a sufficient DirectX version is not installed", ERROR_TIMEOUT: "connection timedout", ERROR_FILEFORM: "unsupported file format", ERROR_SPEAKER: "unavailable speaker", ERROR_VERSION: "invalid BASS version (used by add-ons)", ERROR_CODEC: "codec is not available/supported", ERROR_ENDED: "the channel/file has ended", ERROR_BUSY: "the device is busy", ERROR_UNSTREAMABLE: "BASS_ERROR_UNSTREAMABLE", ERROR_UNKNOWN: "some other mystery problem"}
+	codes        = map[BASS_Error]string{OK: "all is OK", ERROR_MEM: "memory error", ERROR_FILEOPEN: "can't open the file", ERROR_DRIVER: "can't find a free/valid driver", ERROR_BUFLOST: "the sample buffer was lost", ERROR_HANDLE: "invalid handle", ERROR_FORMAT: "unsupported sample format", ERROR_POSITION: "invalid position", ERROR_INIT: "BASS_Init has not been successfully called", ERROR_START: "BASS_Start has not been successfully called", ERROR_SSL: "SSL/HTTPS support isn't available", ERROR_ALREADY: "already initialized/paused/whatever", ERROR_NOTAUDIO: "NOTAUDIO", ERROR_NOCHAN: "can't get a free channel", ERROR_ILLTYPE: "an illegal type was specified", ERROR_ILLPARAM: "an illegal parameter was specified", ERROR_NO3D: "no 3D support", ERROR_NOEAX: "no EAX support", ERROR_DEVICE: "illegal device number", ERROR_NOPLAY: "not playing", ERROR_FREQ: "illegal sample rate", ERROR_NOTFILE: "the stream is not a file stream", ERROR_NOHW: "no hardware voices available", ERROR_EMPTY: "the MOD music has no sequence data", ERROR_NONET: "no internet connection could be opened", ERROR_CREATE: "couldn't create the file", ERROR_NOFX: "effects are not available", ERROR_NOTAVAIL: "requested data is not available", ERROR_DECODE: "the channel is/isn't a 'decoding channel", ERROR_DX: "a sufficient DirectX version is not installed", ERROR_TIMEOUT: "connection timedout", ERROR_FILEFORM: "unsupported file format", ERROR_SPEAKER: "unavailable speaker", ERROR_VERSION: "invalid BASS version (used by add-ons)", ERROR_CODEC: "codec is not available/supported", ERROR_ENDED: "the channel/file has ended", ERROR_BUSY: "the device is busy", ERROR_UNSTREAMABLE: "BASS_ERROR_UNSTREAMABLE", ERROR_UNKNOWN: "some other mystery problem"}
 	streamMemory = map[Channel]unsafe.Pointer{} // Here we store the pointers to allocated memory used to store data for a stream. This is only used if you loada  *stream* *from* memory.
 	streamMemoryLock sync.RWMutex
 )
@@ -246,11 +244,8 @@ RecordStart - Not working !!!
 HRECORD BASSDEF(BASS_RecordStart)(DWORD freq, DWORD chans, DWORD flags, RECORDPROC *proc, void *user);
 */
 func errMsg() error {
-	c := int(C.BASS_ErrorGetCode())
-	if c == 0 {
-		return nil
-	}
-	return error(BASS_Error{Message: "BASS error: " + strconv.Itoa(c) + ", " + codes[c], Kind: c})
+	c := BASS_Error(C.BASS_ErrorGetCode())
+	return c
 }
 
 func (self Channel) StreamFree() error {
