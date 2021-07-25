@@ -365,9 +365,8 @@ func RecordStart(freq, chans, flags int, streamproc *C.RECORDPROC, userdata unsa
 	return channelToError(channel)
 }
 
-func (self Channel) StreamPutData(data []byte) (int, error) {
-	result := int(C.BASS_StreamPutData(self.cint(), unsafe.Pointer(&data[0]), cuint(len(data))))
-	return result, errMsg()
+func (self Channel) StreamPutData(data []byte) (int64, error) {
+	return longPairToError(C.BASS_StreamPutData(self.cint(), unsafe.Pointer(&data[0]), cuint(len(data))))
 }
 func (self Channel) GetData(data []byte, flags int) (int64, error) {
 	return longPairToError(C.BASS_ChannelGetData(self.cint(), unsafe.Pointer(&data[0]), C.DWORD(len(data))))
