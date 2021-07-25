@@ -398,5 +398,23 @@ func (self Channel) GetData(data []byte, flags int) (int64, error) {
 }
 type DeviceInfo struct {
 	Name, Driver string
-	flags int
+	Flags int
+}
+func RecordGetDeviceInfo(device int) (DeviceInfo, error) {
+	var info C.BASS_DEVICEINFO
+	err := boolToError(C.BASS_RecordGetDeviceInfo(C.DWORD(device), &info))
+	if err!=nil {
+		return DeviceInfo{}, err
+	} else {
+		return DeviceInfo{Name: C.GoString(info.name), Driver: C.GoString(info.driver), Flags: int(info.flags)}, nil
+	}
+}
+func GetDeviceInfo(device int) (DeviceInfo, error) {
+	var info C.BASS_DEVICEINFO
+	err := boolToError(C.BASS_GetDeviceInfo(C.DWORD(device), &info))
+	if err!=nil {
+		return DeviceInfo{}, err
+	} else {
+		return DeviceInfo{Name: C.GoString(info.name), Driver: C.GoString(info.driver), Flags: int(info.flags)}, nil
+	}
 }
