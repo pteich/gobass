@@ -50,6 +50,11 @@ var (
 	streamMemory = map[Channel]unsafe.Pointer{} // Here we store the pointers to allocated memory used to store data for a stream. This is only used if you loada  *stream* *from* memory.
 	streamMemoryLock sync.RWMutex
 )
+func Init(device int, freq int, flags int, hwnd, clsid uintptr) error {
+	window := (*C.struct_HWND__)(unsafe.Pointer(hwnd))
+	gid:=unsafe.Pointer(clsid)
+	return boolToError(C.BASS_Init(C.int(device), C.DWORD(freq), C.DWORD(flags), window, (gid)))
+}
 
 /*
 Free
