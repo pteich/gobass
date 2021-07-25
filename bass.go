@@ -225,10 +225,8 @@ func RecordFree() error {
 	return boolToError(C.BASS_RecordFree())
 }
 
-/*
-RecordStart - Not working !!!
-HRECORD BASSDEF(BASS_RecordStart)(DWORD freq, DWORD chans, DWORD flags, RECORDPROC *proc, void *user);
-*/
+
+
 func errMsg() error {
 	c := BASS_Error(C.BASS_ErrorGetCode())
 	return c
@@ -362,7 +360,15 @@ func StreamCreate(freq, chans, flags int, streamproc *C.STREAMPROC, userdata uns
 	channel := C.BASS_StreamCreate(cuint(freq), cuint(chans), cuint(flags), streamproc, userdata)
 	return channelToError(channel)
 }
+func RecordStart(freq, chans, flags int, streamproc *C.RECORDPROC, userdata unsafe.Pointer) (Channel, error) {
+	channel := C.BASS_RecordStart(cuint(freq), cuint(chans), cuint(flags), streamproc, userdata)
+	return channelToError(channel)
+}
+
 func (self Channel) StreamPutData(data []byte) (int, error) {
 	result := int(C.BASS_StreamPutData(self.cint(), unsafe.Pointer(&data[0]), cuint(len(data))))
 	return result, errMsg()
+}
+func (self Channel) GetData(data []byte, flags int) (int64, error) {
+	return longPairToError(C.BASS_ChannelGetData(self.cint(), unsafe.Pointer(&data[0]), C.DWORD(len(data))))
 }
