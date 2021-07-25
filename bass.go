@@ -263,8 +263,8 @@ func (self Channel) GetPosition(mode uint64) (int64, error) {
 func (self Sample) Free() error {
 	return boolToError(C.BASS_SampleFree(self.cint()))
 }
-func (self Sample) GetChannel(onlynew bool) (Channel, error) {
-	return channelToError(C.BASS_SampleGetChannel(self.cint(), boolToInt(onlynew)))
+func (self Sample) GetChannel(flags int) (Channel, error) {
+	return channelToError(C.BASS_SampleGetChannel(self.cint(), C.DWORD(flags)))
 }
 func boolToInt(val bool) C.int {
 	switch val {
@@ -280,7 +280,7 @@ func (self Sample) Stop() error {
 	return boolToError(C.BASS_ChannelStop(self.cint()))
 }
 func IsStarted() bool {
-	return intToBool(C.BASS_IsStarted())
+	return C.BASS_IsStarted()!=0
 }
 
 func (self Channel) Bytes2Seconds(bytes int64) (float64, error) {
@@ -390,4 +390,8 @@ func (self Channel) GetData(data []byte, flags int) (int64, error) {
 	} else {
 		return int64(val), nil
 	}
+}
+type DeviceInfo struct {
+	Name, Driver string
+	flags int
 }
