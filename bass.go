@@ -323,7 +323,7 @@ func SetDevice(device int) error {
 	return boolToError(C.BASS_SetDevice(C.DWORD(device)))
 }
 func boolToError(value C.int) error {
-	if value != 0 {
+	if value == 0 {
 		return errMsg()
 	}
 	return nil
