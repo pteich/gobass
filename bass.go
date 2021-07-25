@@ -358,6 +358,9 @@ func intToError(value cuint) error {
 		return nil
 	}
 }
+func intPairToError(value C.DWORD) (int, error) {
+	return int(value), intToError(value)
+}
 func longToError(value culong) error {
 	if value!=0 {
 		return nil
@@ -434,4 +437,7 @@ func RecordGetInfo() (RecordInfo, error) {
 
 func RecordSetDevice(device int) error {
 	return boolToError(C.BASS_RecordSetDevice(C.DWORD(device)))
+}
+func RecordGetDevice() (int, error) {
+	return intPairToError(C.BASS_RecordGetDevice())
 }
