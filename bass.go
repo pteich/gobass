@@ -370,8 +370,14 @@ func RecordStart(freq, chans, flags int, streamproc *C.RECORDPROC, userdata unsa
 }
 
 func (self Channel) StreamPutData(data []byte) (int64, error) {
+	if len(data)==0 {
+		return 0, nil
+	}
 	return longPairToError(C.BASS_StreamPutData(self.cint(), unsafe.Pointer(&data[0]), cuint(len(data))))
 }
 func (self Channel) GetData(data []byte, flags int) (int64, error) {
+	if len(data)==0 {
+		return 0, nil
+	}
 	return longPairToError(C.BASS_ChannelGetData(self.cint(), unsafe.Pointer(&data[0]), C.DWORD(len(data))))
 }
