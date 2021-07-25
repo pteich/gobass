@@ -418,3 +418,20 @@ func GetDeviceInfo(device int) (DeviceInfo, error) {
 		return DeviceInfo{Name: C.GoString(info.name), Driver: C.GoString(info.driver), Flags: int(info.flags)}, nil
 	}
 }
+type RecordInfo struct {
+	Flags, Formats, Inputs, Freq, Channels int
+	SingleIn bool
+}
+func RecordGetInfo() (RecordInfo, error) {
+	var info C.BASS_RECORDINFO
+	err := boolToError(C.BASS_RecordGetInfo(&info))
+	if err!=nil {
+		return RecordInfo{}, err
+	} else {
+		return RecordInfo{Flags: int(info.flags), Formats: int(info.formats), Inputs: int(info.inputs), SingleIn: info.singlein!=0, Freq: int(info.freq), Channels: int(info.formats<<24)}, nil
+	}
+}
+
+func RecordSetDevice(device int) error {
+	return boolToError(C.BASS_RecordSetDevice(C.DWORD(device)))
+}
