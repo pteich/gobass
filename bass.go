@@ -392,7 +392,7 @@ func (self Channel) GetData(data []byte, flags int) (int64, error) {
 	if len(data)==0 {
 		return 0, nil
 	}
-	val := C.BASS_ChannelGetData(self.cint(), unsafe.Pointer(&data[0]), C.DWORD(len(data)))
+	val := C.BASS_ChannelGetData(self.cint(), unsafe.Pointer(&data[0]), C.DWORD(len(data)|flags))
 	if val +1 == 0 { // -1 indicates an error, but this is an unsigned integer
 		return 0, errMsg()
 	} else {
