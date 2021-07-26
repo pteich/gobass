@@ -431,7 +431,10 @@ func RecordGetInfo() (RecordInfo, error) {
 	if err!=nil {
 		return RecordInfo{}, err
 	} else {
-		return RecordInfo{Flags: int(info.flags), Formats: int(info.formats), Inputs: int(info.inputs), SingleIn: info.singlein!=0, Freq: int(info.freq), Channels: int(info.formats<<24)}, nil
+		 // For some reason the channels are stored in the last byte of formats
+		formats := int(info.formats)>>8
+		ptr := (*uint8)(unsafe.Pointer(&formats))
+		return RecordInfo{Flags: int(info.flags), Formats: int(info.formats), Inputs: int(info.inputs), SingleIn: info.singlein!=0, Freq: int(info.freq), Channels: int(*ptr)}, nil
 	}
 }
 
