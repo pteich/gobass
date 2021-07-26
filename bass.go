@@ -441,3 +441,6 @@ func RecordSetDevice(device int) error {
 func RecordGetDevice() (int, error) {
 	return intPairToError(C.BASS_RecordGetDevice())
 }
+func (self Channel) Free() error {
+	return boolToError(C.BASS_ChannelFree(C.DWORD(self)))
+}
