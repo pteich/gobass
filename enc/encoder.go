@@ -23,3 +23,10 @@ func (self Encoder) Free() error {
 		return nil
 	}
 }
+func (self Encoder) ToError() (Encoder, error) {
+	if self == 0 {
+		return 0, bass.GetLastError()
+	} else {
+		return self, nil
+	}
+}
