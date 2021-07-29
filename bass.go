@@ -51,7 +51,7 @@ var (
 	streamMemoryLock sync.RWMutex
 )
 func Init(device int, freq int, flags int, hwnd, clsid uintptr) error {
-	window := (*C.struct_HWND__)(unsafe.Pointer(hwnd))
+	window := (bassInitPointer)(unsafe.Pointer(hwnd))
 	gid:=unsafe.Pointer(clsid)
 	return boolToError(C.BASS_Init(C.int(device), C.DWORD(freq), C.DWORD(flags), window, (gid)))
 }
