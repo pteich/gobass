@@ -327,11 +327,12 @@ func GetDevice() (int64, error) {
 func SetDevice(device int) error {
 	return boolToError(C.BASS_SetDevice(C.DWORD(device)))
 }
-func boolToError(value C.int) error {
+func boolToError(value C.BOOL) error {
 	if value == 0 {
 		return errMsg()
+	} else {
+		return nil
 	}
-	return nil
 }
 func pairToError(value C.int) (int, error) {
 	return int(value), boolToError(value)
