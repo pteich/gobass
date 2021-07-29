@@ -6,6 +6,7 @@ import (
 
 /*
 #include "bassenc.h"
+#include "stdlib.h"
 */
 import "C"
 func NewWAVEncoderFile(channel bass.Channel, flags int, file string) (Encoder, error) {

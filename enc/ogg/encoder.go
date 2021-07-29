@@ -7,6 +7,7 @@ import (
 
 /*
 #include "bassenc_OGG.h"
+#include "stdlib.h"
 */
 import "C"
 func NewOGGEncoderFile(channel bass.Channel, options string, flags int, file string) (enc.Encoder, error) {

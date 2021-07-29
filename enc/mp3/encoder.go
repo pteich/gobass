@@ -7,6 +7,7 @@ import (
 
 /*
 #include "bassenc_MP3.h"
+#include "stdlib.h"
 */
 import "C"
 func NewMP3EncoderFile(channel bass.Channel, options string, flags int, file string) (enc.Encoder, error) {

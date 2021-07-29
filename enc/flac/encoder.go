@@ -7,6 +7,7 @@ import (
 
 /*
 #include "bassenc_FLAC.h"
+#include "stdlib.h"
 */
 import "C"
 func NewFLACEncoderFile(channel bass.Channel, options string, flags int, file string) (enc.Encoder, error) {
