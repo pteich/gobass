@@ -466,3 +466,11 @@ func RecordGetDevice() (int, error) {
 func (self Channel) Free() error {
 	return boolToError(C.BASS_ChannelFree(C.DWORD(self)))
 }
+// method used mostly by BASS extension bindings. It checks if there was an error by checking if self == 0, and if so returns the BASS error. Otherwise, it returns nil
+func (self Channel) ToError() (Channel, error) {
+	if self == 0 {
+		return 0, GetLastError()
+	} else {
+		return self, nil
+	}
+}
