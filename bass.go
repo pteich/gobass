@@ -421,6 +421,25 @@ func GetDeviceInfo(device int) (DeviceInfo, error) {
 		return DeviceInfo{Name: C.GoString(info.name), Driver: C.GoString(info.driver), Flags: int(info.flags)}, nil
 	}
 }
+func RecordGetDeviceInfoFlags(device int) (int, error) {
+	var info C.BASS_DEVICEINFO
+	err := boolToError(C.BASS_RecordGetDeviceInfo(C.DWORD(device), &info))
+	if err!=nil {
+		return 0, err
+	} else {
+		return int(info.flags), nil
+	}
+}
+func GetDeviceInfoFlags(device int) (int, error) {
+	var info C.BASS_DEVICEINFO
+	err := boolToError(C.BASS_GetDeviceInfo(C.DWORD(device), &info))
+	if err!=nil {
+		return 0, err
+	} else {
+		return int(info.flags), nil
+	}
+}
+
 type RecordInfo struct {
 	Flags, Formats, Inputs, Freq, Channels int
 	SingleIn bool
