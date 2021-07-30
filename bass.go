@@ -50,7 +50,7 @@ var (
 	streamMemory = map[Channel]unsafe.Pointer{} // Here we store the pointers to allocated memory used to store data for a stream. This is only used if you loada  *stream* *from* memory.
 	streamMemoryLock sync.RWMutex
 )
-func Init(device int, freq int, flags int, hwnd, clsid uintptr) error {
+func Init(device int, freq int, flags Flags, hwnd, clsid uintptr) error {
 	window := (bassInitPointer)(unsafe.Pointer(hwnd))
 	gid:=unsafe.Pointer(clsid)
 	return boolToError(C.BASS_Init(C.int(device), C.DWORD(freq), C.DWORD(flags), window, (gid)))
@@ -93,7 +93,7 @@ func SetVolume(v float64) error {
 
 // StreamCreateURL
 // HSTREAM BASSDEF(BASS_StreamCreateURL)(const char *url, DWORD offset, DWORD flags, DOWNLOADPROC *proc, void *user);
-func StreamCreateURL(url string, flags uint) (Channel, error) {
+func StreamCreateURL(url string, flags Flags) (Channel, error) {
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
 	ch := C.BASS_StreamCreateURL(curl, 0, cuint(flags), nil, nil)
@@ -106,7 +106,7 @@ func (self *Channel) SetSync(synctype, param uint64, callback *C.SYNCPROC, userd
 
 // BASS_StreamCreateFile
 // HSTREAM BASSDEF(BASS_StreamCreateFile)(BOOL mem, const void *file, QWORD offset, QWORD length, DWORD flags);
-func StreamCreateFile(data interface{}, offset, flags int) (Channel, error) {
+func StreamCreateFile(data interface{}, offset int, flags Flags) (Channel, error) {
 	var ch C.DWORD
 	switch data.(type) {
 	case CBytes:
@@ -126,7 +126,7 @@ func StreamCreateFile(data interface{}, offset, flags int) (Channel, error) {
 	return channelToError(ch)
 }
 
-func SampleLoad(data interface{}, offset, max, flags int) (Sample, error) {
+func SampleLoad(data interface{}, offset, max, flags Flags) (Sample, error) {
 	var ch C.DWORD
 	switch data.(type) {
 	case CBytes:
@@ -201,7 +201,7 @@ func (self Channel) GetTags(tag int) string {
 }
 
 // PluginLoad
-func PluginLoad(file string, flags int) (handle uint32, err error) {
+func PluginLoad(file string, flags Flags) (handle uint32, err error) {
 	cfile := C.CString(file)
 	plugin := C.BASS_PluginLoad(cfile, cuint(flags))
 	C.free(unsafe.Pointer(cfile))
@@ -268,7 +268,7 @@ func (self Channel) GetPosition(mode uint64) (int64, error) {
 func (self Sample) Free() error {
 	return boolToError(C.BASS_SampleFree(self.cint()))
 }
-func (self Sample) GetChannel(flags int) (Channel, error) {
+func (self Sample) GetChannel(flags Flags) (Channel, error) {
 	return channelToError(C.BASS_SampleGetChannel(self.cint(), C.DWORD(flags)))
 }
 func boolToInt(val bool) C.int {
@@ -369,31 +369,31 @@ func longToError(value culong) error {
 		return errMsg()
 	}
 }
-func StreamCreate(freq, chans, flags int, streamproc *C.STREAMPROC, userdata unsafe.Pointer) (Channel, error) {
+func StreamCreate(freq, chans int, flags Flags, streamproc *C.STREAMPROC, userdata unsafe.Pointer) (Channel, error) {
 	channel := C.BASS_StreamCreate(cuint(freq), cuint(chans), cuint(flags), streamproc, userdata)
 	return channelToError(channel)
 }
-func RecordStart(freq, chans, flags int, streamproc *C.RECORDPROC, userdata unsafe.Pointer) (Channel, error) {
+func RecordStart(freq, chans int, flags Flags, streamproc *C.RECORDPROC, userdata unsafe.Pointer) (Channel, error) {
 	channel := C.BASS_RecordStart(cuint(freq), cuint(chans), cuint(flags), streamproc, userdata)
 	return channelToError(channel)
 }
 
-func (self Channel) StreamPutData(data []byte, flags int) (int64, error) {
+func (self Channel) StreamPutData(data []byte, flags Flags) (int64, error) {
 	if len(data)==0 {
 		return 0, nil
 	}
-	val := C.BASS_StreamPutData(self.cint(), unsafe.Pointer(&data[0]), C.DWORD(len(data)|flags))
+	val := C.BASS_StreamPutData(self.cint(), unsafe.Pointer(&data[0]), C.DWORD(len(data)|int(flags)))
 	if val +1 == 0 { // -1 indicates an error, but this is an unsigned integer
 		return 0, errMsg()
 	} else {
 		return int64(val), nil
 	}
 }
-func (self Channel) GetData(data []byte, flags int) (int64, error) {
+func (self Channel) GetData(data []byte, flags Flags) (int64, error) {
 	if len(data)==0 {
 		return 0, nil
 	}
-	val := C.BASS_ChannelGetData(self.cint(), unsafe.Pointer(&data[0]), C.DWORD(len(data)|flags))
+	val := C.BASS_ChannelGetData(self.cint(), unsafe.Pointer(&data[0]), C.DWORD(len(data)|int(flags)))
 	if val +1 == 0 { // -1 indicates an error, but this is an unsigned integer
 		return 0, errMsg()
 	} else {
@@ -402,7 +402,7 @@ func (self Channel) GetData(data []byte, flags int) (int64, error) {
 }
 type DeviceInfo struct {
 	Name, Driver string
-	Flags int
+	Flags Flags
 }
 func RecordGetDeviceInfo(device int) (DeviceInfo, error) {
 	var info C.BASS_DEVICEINFO
@@ -410,7 +410,7 @@ func RecordGetDeviceInfo(device int) (DeviceInfo, error) {
 	if err!=nil {
 		return DeviceInfo{}, err
 	} else {
-		return DeviceInfo{Name: C.GoString(info.name), Driver: C.GoString(info.driver), Flags: int(info.flags)}, nil
+		return DeviceInfo{Name: C.GoString(info.name), Driver: C.GoString(info.driver), Flags: Flags(info.flags)}, nil
 	}
 }
 func GetDeviceInfo(device int) (DeviceInfo, error) {
@@ -419,25 +419,25 @@ func GetDeviceInfo(device int) (DeviceInfo, error) {
 	if err!=nil {
 		return DeviceInfo{}, err
 	} else {
-		return DeviceInfo{Name: C.GoString(info.name), Driver: C.GoString(info.driver), Flags: int(info.flags)}, nil
+		return DeviceInfo{Name: C.GoString(info.name), Driver: C.GoString(info.driver), Flags: Flags(info.flags)}, nil
 	}
 }
-func RecordGetDeviceInfoFlags(device int) (int, error) {
+func RecordGetDeviceInfoFlags(device int) (Flags, error) {
 	var info C.BASS_DEVICEINFO
 	err := boolToError(C.BASS_RecordGetDeviceInfo(C.DWORD(device), &info))
 	if err!=nil {
 		return 0, err
 	} else {
-		return int(info.flags), nil
+		return Flags(info.flags), nil
 	}
 }
-func GetDeviceInfoFlags(device int) (int, error) {
+func GetDeviceInfoFlags(device int) (Flags, error) {
 	var info C.BASS_DEVICEINFO
 	err := boolToError(C.BASS_GetDeviceInfo(C.DWORD(device), &info))
 	if err!=nil {
 		return 0, err
 	} else {
-		return int(info.flags), nil
+		return Flags(info.flags), nil
 	}
 }
 
@@ -474,4 +474,12 @@ func (self Channel) ToError() (Channel, error) {
 	} else {
 		return self, nil
 	}
+}
+// a helper type to allow setting / clearing BASS flags easily
+type Flags int
+func (self Flags) Add(flag int) Flags {
+	return Flags(int(self) | flag)
+}
+func (self Flags) Has(flag int) bool {
+	return int(self) & flag == flag
 }
