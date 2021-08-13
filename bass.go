@@ -378,26 +378,28 @@ func RecordStart(freq, chans int, flags Flags, streamproc *C.RECORDPROC, userdat
 	return channelToError(channel)
 }
 
-func (self Channel) StreamPutData(data []byte, flags Flags) (int64, error) {
-	if len(data)==0 {
-		return 0, nil
+func (self Channel) StreamPutData(data []byte, flags Flags) (int, error) {
+	var ptr unsafe.Pointer
+	if len(data)>0 {
+		ptr = unsafe.Pointer(&data[0])
 	}
-	val := C.BASS_StreamPutData(self.cint(), unsafe.Pointer(&data[0]), C.DWORD(len(data)|int(flags)))
+	val := C.BASS_StreamPutData(self.cint(), ptr, C.DWORD(len(data)|int(flags)))
 	if val +1 == 0 { // -1 indicates an error, but this is an unsigned integer
 		return 0, errMsg()
 	} else {
-		return int64(val), nil
+		return int(val), nil
 	}
 }
-func (self Channel) GetData(data []byte, flags Flags) (int64, error) {
-	if len(data)==0 {
-		return 0, nil
+func (self Channel) GetData(data []byte, flags Flags) (int, error) {
+	var ptr unsafe.pointer
+	if len(data)>0 {
+		ptr = unsafe.Pointer(&data[0])
 	}
-	val := C.BASS_ChannelGetData(self.cint(), unsafe.Pointer(&data[0]), C.DWORD(len(data)|int(flags)))
+	val := C.BASS_ChannelGetData(self.cint(), ptr, C.DWORD(len(data)|int(flags)))
 	if val +1 == 0 { // -1 indicates an error, but this is an unsigned integer
 		return 0, errMsg()
 	} else {
-		return int64(val), nil
+		return int(val), nil
 	}
 }
 type DeviceInfo struct {
