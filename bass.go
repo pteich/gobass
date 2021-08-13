@@ -403,6 +403,7 @@ func (self Channel) GetData(data []byte, flags Flags) (int64, error) {
 type DeviceInfo struct {
 	Name, Driver string
 	Flags Flags
+	Kind uint8
 }
 func RecordGetDeviceInfo(device int) (DeviceInfo, error) {
 	var info C.BASS_DEVICEINFO
@@ -410,7 +411,7 @@ func RecordGetDeviceInfo(device int) (DeviceInfo, error) {
 	if err!=nil {
 		return DeviceInfo{}, err
 	} else {
-		return DeviceInfo{Name: C.GoString(info.name), Driver: C.GoString(info.driver), Flags: Flags(info.flags)}, nil
+		return DeviceInfo{Name: C.GoString(info.name), Driver: C.GoString(info.driver), Flags: Flags(info.flags), Kind: getHighWord(info.flags)}, nil
 	}
 }
 func GetDeviceInfo(device int) (DeviceInfo, error) {
@@ -419,7 +420,7 @@ func GetDeviceInfo(device int) (DeviceInfo, error) {
 	if err!=nil {
 		return DeviceInfo{}, err
 	} else {
-		return DeviceInfo{Name: C.GoString(info.name), Driver: C.GoString(info.driver), Flags: Flags(info.flags)}, nil
+		return DeviceInfo{Name: C.GoString(info.name), Driver: C.GoString(info.driver), Flags: Flags(info.flags), Kind: getHighWord(info.flags)}, nil
 	}
 }
 func RecordGetDeviceInfoFlags(device int) (Flags, error) {
@@ -452,7 +453,7 @@ func RecordGetInfo() (RecordInfo, error) {
 		return RecordInfo{}, err
 	} else {
 		 // For some reason the channels are stored in the last byte of formats
-		formats := int(info.formats)>>8
+		formats := info.formats>>8
 		ptr := (*uint8)(unsafe.Pointer(&formats))
 		return RecordInfo{Flags: int(info.flags), Formats: int(info.formats), Inputs: int(info.inputs), SingleIn: info.singlein!=0, Freq: int(info.freq), Channels: int(*ptr)}, nil
 	}
@@ -482,4 +483,10 @@ func (self Flags) Add(flag int) Flags {
 }
 func (self Flags) Has(flag int) bool {
 	return int(self) & flag == flag
+}
+// Some of BASS functions like to put multiple values into a single integer
+func getHighWord(v C.DWORD) uint8 {
+	v = v >> 8
+	ptr := (*uint8)(unsafe.Pointer(&v))
+	return *ptr
 }
