@@ -10,7 +10,7 @@ import (
 #include "stdlib.h"
 */
 import "C"
-func NewFLACEncoderFile(channel bass.Channel, options string, flags int, file string) (enc.Encoder, error) {
+func NewFLACEncoderFile(channel bass.Channel, options string, flags bass.Flags, file string) (enc.Encoder, error) {
 	coptions := C.CString(options)
 	defer C.free(unsafe.Pointer(coptions))
 	cfile := C.CString(file)
