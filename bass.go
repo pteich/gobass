@@ -257,12 +257,18 @@ func (self Channel) SlideAttribute(attrib uint64, value float64, time uint64) er
 	return boolToError(C.BASS_ChannelSlideAttribute(self.cint(), cuint(attrib), C.float(value), cuint(time)))
 }
 
-func (self Channel) SetPosition(pos, mode int64) error {
+func (self Channel) SetPosition(pos, mode int) error {
 	return boolToError(C.BASS_ChannelSetPosition(self.cint(), culong(pos), cuint(mode)))
 }
 
-func (self Channel) GetPosition(mode uint64) (int64, error) {
-	return longlongPairToError(C.BASS_ChannelGetPosition(self.cint(), C.DWORD(mode)))
+func (self Channel) GetPosition(mode uint64) (int, error) {
+
+	value := C.BASS_ChannelGetPosition(self.cint(), C.DWORD(mode))
+	if value+1 == 0 {
+		return 0, errMsg()
+	} else {
+		return int(value), nil
+	}
 }
 
 func (self Sample) Free() error {
@@ -288,7 +294,7 @@ func IsStarted() bool {
 	return C.BASS_IsStarted()!=0
 }
 
-func (self Channel) Bytes2Seconds(bytes int64) (float64, error) {
+func (self Channel) Bytes2Seconds(bytes int) (float64, error) {
 	value:=float64(C.BASS_ChannelBytes2Seconds(self.cint(), C.QWORD(bytes)))
 	if value<0 {
 		return value, errMsg()
@@ -296,8 +302,13 @@ func (self Channel) Bytes2Seconds(bytes int64) (float64, error) {
 		return value, nil
 	}
 }
-func (self Channel) GetLength(mode uint64) (int64, error) {
-	return longlongPairToError(C.BASS_ChannelGetLength(self.cint(), C.DWORD(mode)))
+func (self Channel) GetLength(mode uint64) (int, error) {
+	result := C.BASS_ChannelGetLength(self.cint(), C.DWORD(mode))
+	if result +1 == 0 {
+		return 0, errMsg()
+	} else {
+		return int(result), nil
+	}
 }
 func intToBool(val C.int) bool {
 	return val != 0
@@ -305,10 +316,10 @@ func intToBool(val C.int) bool {
 func (self Channel) IsSliding(attrib uint32) bool {
 	return intToBool(C.BASS_ChannelIsSliding(self.cint(), cuint(attrib)))
 }
-func (self Channel) Seconds2Bytes(pos float64) (int64, error) {
-	val := int64(C.BASS_ChannelSeconds2Bytes(self.cint(), C.double(pos)))
+func (self Channel) Seconds2Bytes(pos float64) (int, error) {
+	val := int(C.BASS_ChannelSeconds2Bytes(self.cint(), C.double(pos)))
 	if val<0 {
-		return val, errMsg()
+		return 0, errMsg()
 	} else {
 		return val, nil
 	}
