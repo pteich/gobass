@@ -391,7 +391,7 @@ func (self Channel) StreamPutData(data []byte, flags Flags) (int, error) {
 	}
 }
 func (self Channel) GetData(data []byte, flags Flags) (int, error) {
-	var ptr unsafe.pointer
+	var ptr unsafe.Pointer
 	if len(data)>0 {
 		ptr = unsafe.Pointer(&data[0])
 	}
