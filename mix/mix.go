@@ -9,13 +9,13 @@ import (
 */
 import "C"
 type Mixer bass.Channel
-func MixerStreamCreate(freq, chans, flags int) (Mixer, error) {
+func MixerStreamCreate(freq, chans, flags bass.Flags) (Mixer, error) {
 	return Mixer(C.BASS_Mixer_StreamCreate(C.DWORD(freq), C.DWORD(chans), C.DWORD(flags))).toError()
 }
-func (self Mixer) AddChannel(channel bass.Channel, flags int) error {
+func (self Mixer) AddChannel(channel bass.Channel, flags bass.Flags) error {
 	return boolToError(C.BASS_Mixer_StreamAddChannel(C.DWORD(self), C.DWORD(channel), C.DWORD(flags)))
 }
-func (self Mixer) AddChannelEx(channel bass.Channel, flags int, start, length int64) error {
+func (self Mixer) AddChannelEx(channel bass.Channel, flags bass.Flags, start, length int64) error {
 	return boolToError(C.BASS_Mixer_StreamAddChannelEx(C.DWORD(self), C.DWORD(channel), C.DWORD(flags), C.QWORD(start), C.QWORD(length)))
 }
 func (self Mixer) GetChannels(channels []bass.Channel) (int, error) {
