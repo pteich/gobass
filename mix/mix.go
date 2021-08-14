@@ -42,3 +42,6 @@ func ChannelGetData(channel bass.Channel, buf []byte) (int, error) {
 		return count, nil
 	}
 }
+func ChannelRemove(channel bass.Channel) error {
+	return boolToError(C.BASS_Mixer_ChannelRemove(C.DWORD(channel)))
+}
