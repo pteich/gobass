@@ -9,6 +9,9 @@ import (
 */
 import "C"
 type Mixer bass.Channel
+func (self Mixer) ToChannel() bass.Channel {
+	return bass.Channel(self)
+}
 func StreamCreate(freq, chans int, flags bass.Flags) (Mixer, error) {
 	return Mixer(C.BASS_Mixer_StreamCreate(C.DWORD(freq), C.DWORD(chans), C.DWORD(flags))).toError()
 }
