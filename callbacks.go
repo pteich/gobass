@@ -1,24 +1,28 @@
 package bass
+import (
+	"runtime/cgo"
+	"unsafe"
+)
 
 /*
 #include "bass.h"
 #cgo CFLAGS: -Wno-pointer-to-int-cast
-STREAMPROC* _GO_STREAMPROC_DEVICE = STREAMPROC_DEVICE;
-STREAMPROC* _GO_STREAMPROC_PUSH = STREAMPROC_PUSH;
-STREAMPROC* _GO_STREAMPROC_DUMMY = STREAMPROC_DUMMY;
-CALLBACK BOOL _GoBassRecordCallbackStreamPutData(DWORD recorder, const void* buffer, DWORD length, void* userdata) {
-DWORD stream = (DWORD)(userdata);
-	BASS_StreamPutData(stream, buffer, length);
-	return 1;
-}
 RECORDPROC _GoBassRecordCallbackStreamPutData; // if our callback doesn't match BASS definition of RECORDPROC, this line will tell us by complaining. Loudly.
+SYNCPROC _GoSyncprocCallback;
 */
 import "C"
+type GoSyncproc = func(sync Sync, channel Channel, data int)
 
-//BASS defines STREAMPROC_PUSH and friends weirdly using #define and Go can't find them
+
+//export _GoSyncprocCallback
+func _GoSyncprocCallback(sync C.HSYNC, channel, data C.DWORD, userdata unsafe.Pointer) {
+fn := cgo.Handle(uintptr(userdata)).Value().(GoSyncproc)
+	fn(Sync(sync), Channel(channel), int(data))
+}
 var (
-	STREAMPROC_DEVICE = C._GO_STREAMPROC_DEVICE
-	STREAMPROC_PUSH = C._GO_STREAMPROC_PUSH
-	STREAMPROC_DUMMY = C._GO_STREAMPROC_DUMMY
-	RecordCallbackStreamPutData = (*C.RECORDPROC)(C._GoBassRecordCallbackStreamPutData)
+	STREAMPROC_DEVICE = C.STREAMPROC_DEVICE
+	STREAMPROC_PUSH = C.STREAMPROC_PUSH
+	STREAMPROC_DUMMY = C.STREAMPROC_DUMMY
+	RecordCallbackStreamPutData = C._GoBassRecordCallbackStreamPutData
+	GoSyncprocCallback = &C._GoSyncprocCallback
 )

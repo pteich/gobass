@@ -12,6 +12,7 @@ import "C"
 import (
 	"unsafe"
 	"sync"
+	"runtime/cgo"
 )
 
 //Stores a C byte array, with a pointer to the data and its length.
@@ -100,8 +101,13 @@ func StreamCreateURL(url string, flags Flags) (Channel, error) {
 	return channelToError(ch)
 }
 
-func (self *Channel) SetSync(synctype, param uint64, callback *C.SYNCPROC, userdata unsafe.Pointer) (int64, error) {
-	return longPairToError(C.BASS_ChannelSetSync(self.cint(), cuint(synctype), culong(param), callback, userdata))
+func (self Channel) SetSync(syncType int, flags Flags, param int, callback *C.SYNCPROC, userdata unsafe.Pointer) (Sync, error) {
+	sync := Sync(C.BASS_ChannelSetSync(self.cint(), cuint(syncType), culong(param | int(flags)), callback, userdata))
+	if sync == 0 {
+return 0, errMsg()
+	} else {
+		return sync, nil
+	}
 }
 
 // BASS_StreamCreateFile
@@ -502,4 +508,17 @@ func getHighWord(v C.DWORD) uint8 {
 	v = v >> 8
 	ptr := (*uint8)(unsafe.Pointer(&v))
 	return *ptr
+}
+type Sync Channel
+func (self Channel) RemoveSync(sync Sync) error {
+	return boolToError(C.BASS_ChannelRemoveSync(self.cint(), C.DWORD(sync)))
+}
+
+// creates a new runtime/cgo.Handle and converts it to unsafe.Pointer, ready to be pased into C land
+func NewCGOHandle(value interface{}) unsafe.Pointer {
+	return unsafe.Pointer(cgo.NewHandle(value))
+}
+// frees an unneeded handle created by NewCGOHandle
+func DestroyCGOHandle(handle unsafe.Pointer) {
+	cgo.Handle(handle).Delete()
 }
