@@ -325,7 +325,7 @@ func (self Channel) Seconds2Bytes(pos float64) (int, error) {
 	}
 }
 func (self Channel) Flags(flags, mask Flags) (Flags, error) {
-	return Flags(C.BASS_ChannelFlags(self.cint(), cuint(a), cuint(b))), errMsg()
+	return Flags(C.BASS_ChannelFlags(self.cint(), cuint(flags), cuint(mask))), errMsg()
 }
 
 //Allocates C memory and coppies data to that C memory.
