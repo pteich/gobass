@@ -48,3 +48,11 @@ func ChannelGetData(channel bass.Channel, buf []byte) (int, error) {
 func ChannelRemove(channel bass.Channel) error {
 	return boolToError(C.BASS_Mixer_ChannelRemove(C.DWORD(channel)))
 }
+func ChannelFlags(channel bass.Channel, flags, mask bass.Flags) (bass.Flags, error) {
+	flags = bass.Flags(C.BASS_Mixer_ChannelFlags(C.DWORD(channel), C.DWORD(flags), C.DWORD(mask)))
+	if flags +1 == 0 {
+		return 0, bass.GetLastError()
+	} else {
+		return flags, nil
+	}
+}
