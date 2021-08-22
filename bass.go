@@ -522,3 +522,11 @@ func NewCGOHandle(value interface{}) unsafe.Pointer {
 func DestroyCGOHandle(handle unsafe.Pointer) {
 	cgo.Handle(handle).Delete()
 }
+// if condition is true, adds the specified flags and returns the result, else just returns self without modifying it
+func (self Flags) AddIf(flag Flags, condition bool) Flags {
+	if condition {
+		return self | flag
+	} else {
+		return self
+	}
+}
