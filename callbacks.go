@@ -7,8 +7,8 @@ import (
 /*
 #include "bass.h"
 #cgo CFLAGS: -Wno-pointer-to-int-cast
-RECORDPROC _GoBassRecordCallbackStreamPutData; // if our callback doesn't match BASS definition of RECORDPROC, this line will tell us by complaining. Loudly.
-SYNCPROC _GoSyncprocCallback;
+extern RECORDPROC _GoBassRecordCallbackStreamPutData; // if our callback doesn't match BASS definition of RECORDPROC, this line will tell us by complaining. Loudly.
+extern SYNCPROC _GoSyncprocCallbackWrapper;
 */
 import "C"
 type GoSyncproc = func(sync Sync, channel Channel, data int)
@@ -24,5 +24,5 @@ var (
 	STREAMPROC_PUSH = C.STREAMPROC_PUSH
 	STREAMPROC_DUMMY = C.STREAMPROC_DUMMY
 	RecordCallbackStreamPutData = C._GoBassRecordCallbackStreamPutData
-	GoSyncprocCallback = &C._GoSyncprocCallback
+	GoSyncprocCallback = &C._GoSyncprocCallbackWrapper
 )
