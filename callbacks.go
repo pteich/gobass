@@ -15,7 +15,7 @@ type GoSyncproc = func(sync Sync, channel Channel, data int)
 
 
 //export _GoSyncprocCallback
-func _GoSyncprocCallback(sync C.HSYNC, channel, data C.DWORD, userdata unsafe.Pointer) {
+func _GoSyncprocCallback(sync C.HSYNC, channel C.HCHANNEL, data C.DWORD, userdata unsafe.Pointer) {
 fn := cgo.Handle(uintptr(userdata)).Value().(GoSyncproc)
 	fn(Sync(sync), Channel(channel), int(data))
 }
