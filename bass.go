@@ -496,7 +496,7 @@ func (self Channel) ToError() (Channel, error) {
 	}
 }
 // a helper type to allow setting / clearing BASS flags easily
-type Flags int
+type Flags int64
 func (self Flags) Add(flag int) Flags {
 	return Flags(int(self) | flag)
 }
