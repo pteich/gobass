@@ -530,3 +530,6 @@ func (self Flags) AddIf(flag Flags, condition bool) Flags {
 		return self
 	}
 }
+func GetCPU() float64 {
+	return float64(C.BASS_GetCPU())
+}
