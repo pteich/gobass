@@ -9,6 +9,7 @@ import (
 #cgo CFLAGS: -Wno-pointer-to-int-cast
 extern RECORDPROC* _get_GoBassRecordCallbackStreamPutData();
 extern SYNCPROC* _get_GoSyncprocCallbackWrapper();
+extern SYNCPROC* _get_SyncprocFree();
 */
 import "C"
 type GoSyncproc = func(sync Sync, channel Channel, data int)
@@ -25,4 +26,5 @@ var (
 	STREAMPROC_DUMMY *C.STREAMPROC = C.STREAMPROC_DUMMY
 	RecordCallbackStreamPutData *C.RECORDPROC = C._get_GoBassRecordCallbackStreamPutData()
 	GoSyncprocCallback *C.SYNCPROC = C._get_GoSyncprocCallbackWrapper()
+SyncprocFree *C.SYNCPROC = C._get_SyncprocFree()
 )
