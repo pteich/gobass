@@ -11,7 +11,6 @@ import "C"
 
 import (
 	"unsafe"
-	"sync"
 	"runtime/cgo"
 )
 
@@ -48,8 +47,6 @@ type Handle interface {
 
 var (
 	codes        = map[Error]string{OK: "all is OK", ERROR_MEM: "memory error", ERROR_FILEOPEN: "can't open the file", ERROR_DRIVER: "can't find a free/valid driver", ERROR_BUFLOST: "the sample buffer was lost", ERROR_HANDLE: "invalid handle", ERROR_FORMAT: "unsupported sample format", ERROR_POSITION: "invalid position", ERROR_INIT: "BASS_Init has not been successfully called", ERROR_START: "BASS_Start has not been successfully called", ERROR_SSL: "SSL/HTTPS support isn't available", ERROR_ALREADY: "already initialized/paused/whatever", ERROR_NOTAUDIO: "NOTAUDIO", ERROR_NOCHAN: "can't get a free channel", ERROR_ILLTYPE: "an illegal type was specified", ERROR_ILLPARAM: "an illegal parameter was specified", ERROR_NO3D: "no 3D support", ERROR_NOEAX: "no EAX support", ERROR_DEVICE: "illegal device number", ERROR_NOPLAY: "not playing", ERROR_FREQ: "illegal sample rate", ERROR_NOTFILE: "the stream is not a file stream", ERROR_NOHW: "no hardware voices available", ERROR_EMPTY: "the MOD music has no sequence data", ERROR_NONET: "no internet connection could be opened", ERROR_CREATE: "couldn't create the file", ERROR_NOFX: "effects are not available", ERROR_NOTAVAIL: "requested data is not available", ERROR_DECODE: "the channel is/isn't a 'decoding channel", ERROR_DX: "a sufficient DirectX version is not installed", ERROR_TIMEOUT: "connection timedout", ERROR_FILEFORM: "unsupported file format", ERROR_SPEAKER: "unavailable speaker", ERROR_VERSION: "invalid BASS version (used by add-ons)", ERROR_CODEC: "codec is not available/supported", ERROR_ENDED: "the channel/file has ended", ERROR_BUSY: "the device is busy", ERROR_UNSTREAMABLE: "Error_UNSTREAMABLE", ERROR_UNKNOWN: "some other mystery problem"}
-	streamMemory = map[Channel]unsafe.Pointer{} // Here we store the pointers to allocated memory used to store data for a stream. This is only used if you loada  *stream* *from* memory.
-	streamMemoryLock sync.RWMutex
 )
 func Init(device int, freq int, flags Flags, hwnd, clsid uintptr) error {
 	window := (bassInitPointer)(unsafe.Pointer(hwnd))
@@ -114,37 +111,40 @@ return 0, errMsg()
 // HSTREAM BASSDEF(BASS_StreamCreateFile)(BOOL mem, const void *file, QWORD offset, QWORD length, DWORD flags);
 func StreamCreateFile(data interface{}, offset int, flags Flags) (Channel, error) {
 	var ch C.DWORD
-	switch data.(type) {
+	switch data := data.(type) {
 	case CBytes:
-		cdata := data.(CBytes)
-		ch = C.BASS_StreamCreateFile(1, cdata.Data, culong(offset), culong(cdata.Length), cuint(flags))
+		ch = C.BASS_StreamCreateFile(1, data.Data, culong(offset), culong(data.Length), cuint(flags))
 	case string:
-		datastring := C.CString(data.(string))
-		ch = C.BASS_StreamCreateFile(0, unsafe.Pointer(datastring), culong(offset), 0, cuint(flags))
-		C.free(unsafe.Pointer(datastring))
+		cstring := unsafe.Pointer(C.CString(data))
+		defer C.free(cstring)
+		ch = C.BASS_StreamCreateFile(0, cstring, culong(offset), 0, cuint(flags))
 	case []byte:
-		databytes := C.CBytes(data.([]byte))
-		ch = C.BASS_StreamCreateFile(1, databytes, culong(offset), culong(len(data.([]byte))), cuint(flags))
-		streamMemoryLock.Lock()
-		streamMemory[Channel(ch)] = databytes
-		streamMemoryLock.Unlock()
+		cbytes := C.CBytes(data)
+		ch = C.BASS_StreamCreateFile(1, cbytes, culong(offset), culong(len(data)), cuint(flags))
+		// unlike BASS_SampleLoad, BASS won't make a copy of the sample data internally, which means we can't just pass a pointer to the Go bytes. Instead we need to set a sync to free the bytes when the stream it's associated with is freed
+		if ch != 0 {
+			channel := Channel(ch)
+			_, err := channel.SetSync(SYNC_FREE, SYNC_ONETIME, 0, SyncprocFree, cbytes)
+			if err != nil {
+				return 0, err
+			}
+		}
 	}
 	return channelToError(ch)
 }
 
 func SampleLoad(data interface{}, offset, max, flags Flags) (Sample, error) {
 	var ch C.DWORD
-	switch data.(type) {
+	switch data := data.(type) {
 	case CBytes:
-		cdata := data.(CBytes)
-		ch = C.BASS_SampleLoad(1, cdata.Data, culong(offset), cuint(cdata.Length), cuint(max), cuint(flags))
+		ch = C.BASS_SampleLoad(1, data.Data, culong(offset), cuint(data.Length), cuint(max), cuint(flags))
 	case string:
-		datastring := C.CString(data.(string))
-		ch = C.BASS_SampleLoad(0, unsafe.Pointer(datastring), culong(offset), 0, cuint(max), cuint(flags))
-		C.free(unsafe.Pointer(datastring))
+		cstring := unsafe.Pointer(C.CString(data))
+		defer C.free(cstring)
+		ch = C.BASS_SampleLoad(0, cstring, culong(offset), 0, cuint(max), cuint(flags))
 	case []byte:
-		databytes := data.([]byte)
-		ch = C.BASS_SampleLoad(1, unsafe.Pointer(&databytes[0]), culong(offset), cuint(len(databytes)), cuint(max), cuint(flags))
+		// According to BASS documentation, BASS_SampleLoad makes an internal copy of the passed-in memory, so we don't need to worry about CGO restrictions and can just pass a pointer to Go memory
+		ch = C.BASS_SampleLoad(1, unsafe.Pointer(&data[0]), culong(offset), cuint(len(data)), cuint(max), cuint(flags))
 	}
 	return sampleToError(ch)
 }
@@ -251,12 +251,6 @@ func GetLastError() error {
 	return errMsg()
 }
 func (self Channel) StreamFree() error {
-	streamMemoryLock.RLock()
-	ptr, exists := streamMemory[self]
-	streamMemoryLock.RUnlock()
-	if exists == true {
-		C.free(ptr)
-	}
 	return boolToError(C.BASS_StreamFree(self.cint()))
 }
 func (self Channel) SlideAttribute(attrib uint64, value float64, time uint64) error {
