@@ -1,5 +1,5 @@
 image: Ubuntu
 build_script:
-  - sh: go get -u -v github.com/keithcat1/gobass
+  - sh: go get -u -v github.com/pteich/gobass
 
 

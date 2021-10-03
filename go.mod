@@ -1,3 +1,3 @@
-module github.com/keithcat1/gobass
+module github.com/pteich/gobass
 
-go 1.15
+go 1.17

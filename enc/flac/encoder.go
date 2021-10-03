@@ -1,15 +1,18 @@
 package flac
+
 import (
 	"unsafe"
-	"github.com/keithcat1/gobass"
-"github.com/keithcat1/gobass/enc"
+
+	"github.com/pteich/gobass"
+	"github.com/pteich/gobass/enc"
 )
 
 /*
-#include "bassenc_FLAC.h"
+#include "bassenc_flac.h"
 #include "stdlib.h"
 */
 import "C"
+
 func NewFLACEncoderFile(channel bass.Channel, options string, flags bass.Flags, file string) (enc.Encoder, error) {
 	coptions := C.CString(options)
 	defer C.free(unsafe.Pointer(coptions))

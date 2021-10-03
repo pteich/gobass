@@ -1,7 +1,8 @@
 package enc
+
 import (
+	"github.com/pteich/gobass"
 	"unsafe"
-	"github.com/keithcat1/gobass"
 )
 
 /*
@@ -9,6 +10,7 @@ import (
 #include "stdlib.h"
 */
 import "C"
+
 func NewWAVEncoderFile(channel bass.Channel, flags bass.Flags, file string) (Encoder, error) {
 	cfile := C.CString(file)
 	defer C.free(unsafe.Pointer(cfile))

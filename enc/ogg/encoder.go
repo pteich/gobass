@@ -1,8 +1,9 @@
 package ogg
+
 import (
+	"github.com/pteich/gobass"
+	"github.com/pteich/gobass/enc"
 	"unsafe"
-	"github.com/keithcat1/gobass"
-	"github.com/keithcat1/gobass/enc"
 )
 
 /*
@@ -10,6 +11,7 @@ import (
 #include "stdlib.h"
 */
 import "C"
+
 func NewOGGEncoderFile(channel bass.Channel, options string, flags bass.Flags, file string) (enc.Encoder, error) {
 	coptions := C.CString(options)
 	defer C.free(unsafe.Pointer(coptions))

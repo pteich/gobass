@@ -1,7 +1,9 @@
 package mix
+
 import (
-	"github.com/keithcat1/gobass"
+	"github.com/pteich/gobass"
 )
+
 /*
 #include "bassmix.h"
 */
