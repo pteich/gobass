@@ -1,11 +1,11 @@
-# gobass.dll
-Go bindings for [bass.dll](http://www.un4seen.com/)
+# Go Bindings for Un4Seen BASS
+Go bindings for [Un4Seen BASS Audio Library](http://www.un4seen.com/)
 
-Note: wrapped a few basic functions
+Forked from http://github.com/lexesv/gobass.dll and added additional function bindings. 
 
 ### Install
 ```sh
-$ go get github.com/lexesv/gobass.dll
+$ go get github.com/pteich/gobass
 ```
 
 ### Usage
