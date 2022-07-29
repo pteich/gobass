@@ -208,6 +208,15 @@ func (ch Channel) GetTags(tag int) string {
 	return C.GoString(C.BASS_ChannelGetTags(ch.cint(), C.DWORD(tag)))
 }
 
+// ChannelGetInfo get channel info from the header
+func (ch Channel) ChannelGetInfo() (C.BASS_CHANNELINFO, error) {
+	var chInfo C.BASS_CHANNELINFO
+	if C.BASS_ChannelGetInfo(C.DWORD(ch), &chInfo) != 0 {
+		return chInfo, nil
+	}
+	return chInfo, errMsg()
+}
+
 // PluginLoad
 func PluginLoad(file string, flags Flags) (handle uint32, err error) {
 	cfile := C.CString(file)
