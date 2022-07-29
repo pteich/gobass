@@ -1,7 +1,7 @@
 # Go Bindings for Un4Seen BASS
 Go bindings for [Un4Seen BASS Audio Library](http://www.un4seen.com/)
 
-Forked from http://github.com/lexesv/gobass.dll and added additional function bindings. 
+Forked from http://github.com/lexesv/gobass.dll and https://github.com/Keithcat1/gobass
 
 ### Install
 ```sh
