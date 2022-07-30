@@ -50,7 +50,8 @@ func (e Encoder) ToError() (Encoder, error) {
 	}
 }
 
-func NewEncoder(channel bass.Channel, cmdline string, flags bass.Flags, callback *C.ENCODEPROC, userdata unsafe.Pointer) (Encoder, error) {
+// NewEncoder Sets up an encoder on a channel.
+func NewEncoder(channel bass.Channel, cmdline string, flags EncodeStartFlags, callback *C.ENCODEPROC, userdata unsafe.Pointer) (Encoder, error) {
 	ccmdline := C.CString(cmdline)
 	defer C.free(unsafe.Pointer(ccmdline))
 

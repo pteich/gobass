@@ -24,16 +24,11 @@ type culong = C.QWORD
 
 type SyncProc C.SYNCPROC
 
-type Channel uint32
-
 // Error is the error code returned by any function.
 type Error int
 
 func (e Error) Error() string {
 	return "BASS error: " + codes[e]
-}
-func (ch Channel) cint() cuint {
-	return cuint(ch)
 }
 
 type Sample uint32
@@ -91,8 +86,7 @@ func SetVolume(v float64) error {
 	return BoolToError(C.BASS_SetVolume(C.float(v)))
 }
 
-// StreamCreateURL
-// HSTREAM BASSDEF(BASS_StreamCreateURL)(const char *url, DWORD offset, DWORD flags, DOWNLOADPROC *proc, void *user);
+// StreamCreateURL Creates a sample stream from an MP3, MP2, MP1, OGG, WAV, AIFF or plugin supported file on the internet, optionally receiving the downloaded data in a callback function.
 func StreamCreateURL(url string, flags Flags) (Channel, error) {
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
@@ -100,19 +94,10 @@ func StreamCreateURL(url string, flags Flags) (Channel, error) {
 	return channelToError(ch)
 }
 
-func (ch Channel) SetSync(syncType int, flags Flags, param int, callback *C.SYNCPROC, userdata unsafe.Pointer) (Sync, error) {
-	sync := Sync(C.BASS_ChannelSetSync(ch.cint(), cuint(syncType), culong(param|int(flags)), callback, userdata))
-	if sync == 0 {
-		return 0, ErrMsg()
-	} else {
-		return sync, nil
-	}
-}
-
-// StreamCreateFile
-// HSTREAM BASSDEF(BASS_StreamCreateFile)(BOOL mem, const void *file, QWORD offset, QWORD length, DWORD flags);
+// StreamCreateFile Creates a sample stream from an MP3, MP2, MP1, OGG, WAV, AIFF or plugin supported file.
 func StreamCreateFile(data interface{}, offset int, flags Flags) (Channel, error) {
 	var ch C.DWORD
+
 	switch data := data.(type) {
 	case CBytes:
 		ch = C.BASS_StreamCreateFile(1, data.Data, culong(offset), culong(data.Length), cuint(flags))
@@ -132,6 +117,7 @@ func StreamCreateFile(data interface{}, offset int, flags Flags) (Channel, error
 			}
 		}
 	}
+
 	return channelToError(ch)
 }
 
@@ -149,72 +135,6 @@ func SampleLoad(data interface{}, offset, max, flags Flags) (Sample, error) {
 		ch = C.BASS_SampleLoad(1, unsafe.Pointer(&data[0]), culong(offset), cuint(len(data)), cuint(max), cuint(flags))
 	}
 	return sampleToError(ch)
-}
-
-// ChannelPlay
-// BOOL BASSDEF(BASS_ChannelPlay)(DWORD handle, BOOL restart);
-func (ch Channel) Play(restart bool) error {
-	return BoolToError(C.BASS_ChannelPlay(ch.cint(), boolToInt(restart)))
-}
-
-// ChannelPause
-// BOOL BASSDEF(BASS_ChannelPause)(DWORD handle);
-func (ch Channel) Pause() error {
-	return BoolToError(C.BASS_ChannelPause(ch.cint()))
-}
-
-// ChannelStop
-// BOOL BASSDEF(BASS_ChannelStop)(DWORD handle);
-func (ch Channel) Stop() error {
-	return BoolToError(C.BASS_ChannelStop(ch.cint()))
-}
-
-func (ch Channel) IsActive() (int, error) {
-	active := int(C.BASS_ChannelIsActive(ch.cint()))
-	if active == ACTIVE_STOPPED {
-		return active, ErrMsg()
-	} else {
-		return active, nil
-	}
-}
-
-// ChannelGetAttribute
-// BOOL BASSDEF(BASS_ChannelGetAttribute)(DWORD handle, DWORD attrib, float *value);
-func (ch Channel) GetAttribute(attrib int) (float64, error) {
-	var cvalue C.float
-	result := C.BASS_ChannelGetAttribute(ch.cint(), C.DWORD(attrib), &cvalue)
-	return float64(cvalue), BoolToError(result)
-}
-
-// ChannelSetAttribute
-// BOOL BASSDEF(BASS_ChannelSetAttribute)(DWORD handle, DWORD attrib, float value);
-func (ch Channel) SetAttribute(attrib int, value float64) error {
-	return BoolToError(C.BASS_ChannelSetAttribute(ch.cint(), C.DWORD(attrib), C.float(value)))
-}
-
-// GetLevel
-//DWORD BASSDEF(BASS_ChannelGetLevel)(DWORD handle);
-func (ch Channel) GetLevel() (c int, e error) {
-	c = int(C.BASS_ChannelGetLevel(ch.cint()))
-	if c == -1 {
-		return 0, ErrMsg()
-	}
-	return c, nil
-}
-
-// GetTags
-// const char *BASSDEF(BASS_ChannelGetTags)(DWORD handle, DWORD tags);
-func (ch Channel) GetTags(tag int) string {
-	return C.GoString(C.BASS_ChannelGetTags(ch.cint(), C.DWORD(tag)))
-}
-
-// ChannelGetInfo get channel info from the header
-func (ch Channel) ChannelGetInfo() (C.BASS_CHANNELINFO, error) {
-	var chInfo C.BASS_CHANNELINFO
-	if C.BASS_ChannelGetInfo(C.DWORD(ch), &chInfo) != 0 {
-		return chInfo, nil
-	}
-	return chInfo, ErrMsg()
 }
 
 // PluginLoad
@@ -256,37 +176,19 @@ func ErrMsg() error {
 	}
 }
 
-// Returns the last error, if any, that was caused by a call to a BASS function. You should not normally call this function, all BASS functions in this package handle and return errors.
+// GetLastError returns the last error, if any, that was caused by a call to a BASS function. You should not normally call this function, all BASS functions in this package handle and return errors.
 func GetLastError() error {
 	return ErrMsg()
-}
-func (ch Channel) StreamFree() error {
-	return BoolToError(C.BASS_StreamFree(ch.cint()))
-}
-func (ch Channel) SlideAttribute(attrib uint64, value float64, time uint64) error {
-	return BoolToError(C.BASS_ChannelSlideAttribute(ch.cint(), cuint(attrib), C.float(value), cuint(time)))
-}
-
-func (ch Channel) SetPosition(pos, mode int) error {
-	return BoolToError(C.BASS_ChannelSetPosition(ch.cint(), culong(pos), cuint(mode)))
-}
-
-func (ch Channel) GetPosition(mode uint64) (int, error) {
-
-	value := C.BASS_ChannelGetPosition(ch.cint(), C.DWORD(mode))
-	if value+1 == 0 {
-		return 0, ErrMsg()
-	} else {
-		return int(value), nil
-	}
 }
 
 func (s Sample) Free() error {
 	return BoolToError(C.BASS_SampleFree(s.cint()))
 }
+
 func (s Sample) GetChannel(flags Flags) (Channel, error) {
 	return channelToError(C.BASS_SampleGetChannel(s.cint(), C.DWORD(flags)))
 }
+
 func boolToInt(val bool) C.int {
 	switch val {
 	case true:
@@ -304,38 +206,8 @@ func IsStarted() bool {
 	return C.BASS_IsStarted() != 0
 }
 
-func (ch Channel) Bytes2Seconds(bytes int) (float64, error) {
-	value := float64(C.BASS_ChannelBytes2Seconds(ch.cint(), C.QWORD(bytes)))
-	if value < 0 {
-		return value, ErrMsg()
-	} else {
-		return value, nil
-	}
-}
-func (ch Channel) GetLength(mode uint64) (int, error) {
-	result := C.BASS_ChannelGetLength(ch.cint(), C.DWORD(mode))
-	if result+1 == 0 {
-		return 0, ErrMsg()
-	} else {
-		return int(result), nil
-	}
-}
 func intToBool(val C.int) bool {
 	return val != 0
-}
-func (ch Channel) IsSliding(attrib uint32) bool {
-	return intToBool(C.BASS_ChannelIsSliding(ch.cint(), cuint(attrib)))
-}
-func (ch Channel) Seconds2Bytes(pos float64) (int, error) {
-	val := int(C.BASS_ChannelSeconds2Bytes(ch.cint(), C.double(pos)))
-	if val < 0 {
-		return 0, ErrMsg()
-	} else {
-		return val, nil
-	}
-}
-func (ch Channel) Flags(flags, mask Flags) (Flags, error) {
-	return Flags(C.BASS_ChannelFlags(ch.cint(), cuint(flags), cuint(mask))), ErrMsg()
 }
 
 // CopyBytes allocates C memory and coppies data to that C memory.
@@ -372,9 +244,11 @@ func channelToError(ch C.DWORD) (Channel, error) {
 func sampleToError(ch C.DWORD) (Sample, error) {
 	return Sample(ch), BoolToError(C.int(ch))
 }
+
 func longlongPairToError(value C.QWORD) (int64, error) {
 	return int64(value), BoolToError(C.int(value))
 }
+
 func intToError(value cuint) error {
 	if value == 0 {
 		return ErrMsg()
@@ -382,9 +256,11 @@ func intToError(value cuint) error {
 		return nil
 	}
 }
+
 func intPairToError(value C.DWORD) (int, error) {
 	return int(value), intToError(value)
 }
+
 func longToError(value culong) error {
 	if value != 0 {
 		return nil
@@ -392,38 +268,16 @@ func longToError(value culong) error {
 		return ErrMsg()
 	}
 }
-func StreamCreate(freq, chans int, flags Flags, streamproc *C.STREAMPROC, userdata unsafe.Pointer) (Channel, error) {
+
+// StreamCreate Creates a user sample stream.
+func StreamCreate(freq int, chans int, flags Flags, streamproc *C.STREAMPROC, userdata unsafe.Pointer) (Channel, error) {
 	channel := C.BASS_StreamCreate(cuint(freq), cuint(chans), cuint(flags), streamproc, userdata)
 	return channelToError(channel)
 }
+
 func RecordStart(freq, chans int, flags Flags, streamproc *C.RECORDPROC, userdata unsafe.Pointer) (Channel, error) {
 	channel := C.BASS_RecordStart(cuint(freq), cuint(chans), cuint(flags), streamproc, userdata)
 	return channelToError(channel)
-}
-
-func (ch Channel) StreamPutData(data []byte, flags Flags) (int, error) {
-	var ptr unsafe.Pointer
-	if len(data) > 0 {
-		ptr = unsafe.Pointer(&data[0])
-	}
-	val := C.BASS_StreamPutData(ch.cint(), ptr, C.DWORD(len(data)|int(flags)))
-	if val+1 == 0 { // -1 indicates an error, but this is an unsigned integer
-		return 0, ErrMsg()
-	} else {
-		return int(val), nil
-	}
-}
-func (ch Channel) GetData(data []byte, flags Flags) (int, error) {
-	var ptr unsafe.Pointer
-	if len(data) > 0 {
-		ptr = unsafe.Pointer(&data[0])
-	}
-	val := C.BASS_ChannelGetData(ch.cint(), ptr, C.DWORD(len(data)|int(flags)))
-	if val+1 == 0 { // -1 indicates an error, but this is an unsigned integer
-		return 0, ErrMsg()
-	} else {
-		return int(val), nil
-	}
 }
 
 type DeviceInfo struct {
@@ -441,6 +295,7 @@ func RecordGetDeviceInfo(device int) (DeviceInfo, error) {
 		return DeviceInfo{Name: C.GoString(info.name), Driver: C.GoString(info.driver), Flags: Flags(info.flags), Kind: getHighWord(info.flags)}, nil
 	}
 }
+
 func GetDeviceInfo(device int) (DeviceInfo, error) {
 	var info C.BASS_DEVICEINFO
 	err := BoolToError(C.BASS_GetDeviceInfo(C.DWORD(device), &info))
@@ -450,6 +305,7 @@ func GetDeviceInfo(device int) (DeviceInfo, error) {
 		return DeviceInfo{Name: C.GoString(info.name), Driver: C.GoString(info.driver), Flags: Flags(info.flags), Kind: getHighWord(info.flags)}, nil
 	}
 }
+
 func RecordGetDeviceInfoFlags(device int) (Flags, error) {
 	var info C.BASS_DEVICEINFO
 	err := BoolToError(C.BASS_RecordGetDeviceInfo(C.DWORD(device), &info))
@@ -459,6 +315,7 @@ func RecordGetDeviceInfoFlags(device int) (Flags, error) {
 		return Flags(info.flags), nil
 	}
 }
+
 func GetDeviceInfoFlags(device int) (Flags, error) {
 	var info C.BASS_DEVICEINFO
 	err := BoolToError(C.BASS_GetDeviceInfo(C.DWORD(device), &info))
@@ -490,33 +347,32 @@ func RecordGetInfo() (RecordInfo, error) {
 func RecordSetDevice(device int) error {
 	return BoolToError(C.BASS_RecordSetDevice(C.DWORD(device)))
 }
+
 func RecordGetDevice() (int, error) {
 	return intPairToError(C.BASS_RecordGetDevice())
-}
-func (ch Channel) Free() error {
-	return BoolToError(C.BASS_ChannelFree(C.DWORD(ch)))
-}
-
-// ToError method used mostly by BASS extension bindings. It checks if there was an error by checking if self == 0, and if so returns the BASS error. Otherwise, it returns nil
-func (ch Channel) ToError() (Channel, error) {
-	if ch == 0 {
-		return 0, GetLastError()
-	} else {
-		return ch, nil
-	}
 }
 
 // Flags is a helper type to allow setting / clearing BASS flags easily
 type Flags int64
 
-func (f Flags) Add(flag int) Flags {
-	return Flags(int(f) | flag)
-}
-func (f Flags) Has(flag int) bool {
-	return int(f)&flag == flag
+func (f Flags) Add(flag Flags) Flags {
+	return Flags(int(f) | int(flag))
 }
 
-// getHighWord some of BASS functions like to put multiple values into a single integer
+func (f Flags) Has(flag Flags) bool {
+	return int(f)&int(flag) == int(flag)
+}
+
+// AddIf if condition is true, adds the specified flags and returns the result, else just returns self without modifying it
+func (f Flags) AddIf(flag Flags, condition bool) Flags {
+	if condition {
+		return f | flag
+	} else {
+		return f
+	}
+}
+
+// getHighWord some BASS functions like to put multiple values into a single integer
 func getHighWord(v C.DWORD) uint8 {
 	v = v >> 8
 	ptr := (*uint8)(unsafe.Pointer(&v))
@@ -539,14 +395,6 @@ func DestroyCGOHandle(handle unsafe.Pointer) {
 	cgo.Handle(handle).Delete()
 }
 
-// if condition is true, adds the specified flags and returns the result, else just returns self without modifying it
-func (f Flags) AddIf(flag Flags, condition bool) Flags {
-	if condition {
-		return f | flag
-	} else {
-		return f
-	}
-}
 func GetCPU() float64 {
 	return float64(C.BASS_GetCPU())
 }

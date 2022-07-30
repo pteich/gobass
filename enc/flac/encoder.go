@@ -13,7 +13,7 @@ import (
 */
 import "C"
 
-func NewEncoder(channel bass.Channel, options string, flags bass.Flags, callback *C.ENCODEPROCEX, userdata unsafe.Pointer) (enc.Encoder, error) {
+func NewEncoder(channel bass.Channel, options string, flags enc.EncodeStartFlags, callback *C.ENCODEPROCEX, userdata unsafe.Pointer) (enc.Encoder, error) {
 	coptions := C.CString(options)
 	defer C.free(unsafe.Pointer(coptions))
 

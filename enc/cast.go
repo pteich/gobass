@@ -29,10 +29,10 @@ type CastConfig struct {
 	Description string
 	Headers     string
 	Bitrate     uint32
-	Public      bool
 }
 
-func CastInit(encoder Encoder, cfg CastConfig) error {
+// CastInit Initializes sending an encoder's output to a Shoutcast or Icecast server.
+func CastInit(encoder Encoder, cfg CastConfig, flags EncodeCastInitFlags) error {
 	serverC := C.CString(cfg.Server)
 	defer C.free(unsafe.Pointer(serverC))
 	passwordC := C.CString(cfg.Password)
@@ -49,10 +49,6 @@ func CastInit(encoder Encoder, cfg CastConfig) error {
 	defer C.free(unsafe.Pointer(descriptionC))
 	headersC := C.CString(cfg.Headers)
 	defer C.free(unsafe.Pointer(headersC))
-	public := 0
-	if cfg.Public {
-		public = 1
-	}
 
 	ret := C.BASS_Encode_CastInit(C.DWORD(encoder),
 		serverC,
@@ -64,7 +60,7 @@ func CastInit(encoder Encoder, cfg CastConfig) error {
 		descriptionC,
 		headersC,
 		C.DWORD(cfg.Bitrate),
-		C.int(public),
+		C.DWORD(flags),
 	)
 
 	if ret <= 0 {
