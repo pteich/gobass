@@ -1,6 +1,6 @@
 /*
 	BASSenc 2.4 C/C++ header file
-	Copyright (c) 2003-2020 Un4seen Developments Ltd.
+	Copyright (c) 2003-2022 Un4seen Developments Ltd.
 
 	See the BASSENC.CHM file for more detailed documentation
 */
@@ -12,6 +12,11 @@
 
 #if BASSVERSION!=0x204
 #error conflicting BASS and BASSenc versions
+#endif
+
+#ifdef __OBJC__
+typedef int BOOL32;
+#define BOOL BOOL32 // override objc's BOOL
 #endif
 
 #ifdef __cplusplus
@@ -81,10 +86,21 @@ typedef DWORD HENCODE;		// encoder handle
 #define BASS_ENCODE_TYPE_OGG	"audio/ogg"
 #define BASS_ENCODE_TYPE_AAC	"audio/aacp"
 
+// BASS_Encode_CastInit flags
+#define BASS_ENCODE_CAST_PUBLIC			1	// add to public directory
+#define BASS_ENCODE_CAST_PUT			2	// use PUT method
+#define BASS_ENCODE_CAST_SSL			4	// use SSL/TLS encryption
+
 // BASS_Encode_CastGetStats types
 #define BASS_ENCODE_STATS_SHOUT		0	// Shoutcast stats
 #define BASS_ENCODE_STATS_ICE		1	// Icecast mount-point stats
 #define BASS_ENCODE_STATS_ICESERV	2	// Icecast server stats
+
+// BASS_Encode_ServerInit flags
+#define BASS_ENCODE_SERVER_NOHTTP		1	// no HTTP headers
+#define BASS_ENCODE_SERVER_META			2	// Shoutcast metadata
+#define BASS_ENCODE_SERVER_SSL			4	// support SSL/TLS encryption
+#define BASS_ENCODE_SERVER_SSLONLY		8	// require SSL/TLS encryption
 
 typedef void (CALLBACK ENCODEPROC)(HENCODE handle, DWORD channel, const void *buffer, DWORD length, void *user);
 /* Encoding callback function.
@@ -136,27 +152,22 @@ user   : The 'user' parameter value given when calling BASS_Encode_SetNotify */
 #define BASS_ENCODE_NOTIFY_QUEUE_FULL	0x10001	// queue is out of space
 #define BASS_ENCODE_NOTIFY_FREE			0x10002	// encoder has been freed
 
-// BASS_Encode_ServerInit flags
-#define BASS_ENCODE_SERVER_NOHTTP		1	// no HTTP headers
-#define BASS_ENCODE_SERVER_META			2	// Shoutcast metadata
-#define BASS_ENCODE_SERVER_SSL			4
-
 DWORD BASSENCDEF(BASS_Encode_GetVersion)(void);
 
 HENCODE BASSENCDEF(BASS_Encode_Start)(DWORD handle, const char *cmdline, DWORD flags, ENCODEPROC *proc, void *user);
 HENCODE BASSENCDEF(BASS_Encode_StartLimit)(DWORD handle, const char *cmdline, DWORD flags, ENCODEPROC *proc, void *user, DWORD limit);
 HENCODE BASSENCDEF(BASS_Encode_StartUser)(DWORD handle, const char *filename, DWORD flags, ENCODERPROC *proc, void *user);
 BOOL BASSENCDEF(BASS_Encode_AddChunk)(HENCODE handle, const char *id, const void *buffer, DWORD length);
-DWORD BASSENCDEF(BASS_Encode_IsActive)(DWORD handle);
+BOOL BASSENCDEF(BASS_Encode_Write)(DWORD handle, const void *buffer, DWORD length);
 BOOL BASSENCDEF(BASS_Encode_Stop)(DWORD handle);
 BOOL BASSENCDEF(BASS_Encode_StopEx)(DWORD handle, BOOL queue);
 BOOL BASSENCDEF(BASS_Encode_SetPaused)(DWORD handle, BOOL paused);
-BOOL BASSENCDEF(BASS_Encode_Write)(DWORD handle, const void *buffer, DWORD length);
+DWORD BASSENCDEF(BASS_Encode_IsActive)(DWORD handle);
 BOOL BASSENCDEF(BASS_Encode_SetNotify)(DWORD handle, ENCODENOTIFYPROC *proc, void *user);
-QWORD BASSENCDEF(BASS_Encode_GetCount)(DWORD handle, DWORD count);
+QWORD BASSENCDEF(BASS_Encode_GetCount)(HENCODE handle, DWORD count);
 BOOL BASSENCDEF(BASS_Encode_SetChannel)(DWORD handle, DWORD channel);
 DWORD BASSENCDEF(BASS_Encode_GetChannel)(HENCODE handle);
-BOOL BASSENCDEF(BASS_Encode_UserOutput)(DWORD handle, QWORD offset, const void *buffer, DWORD length);
+BOOL BASSENCDEF(BASS_Encode_UserOutput)(HENCODE handle, QWORD offset, const void *buffer, DWORD length);
 
 #ifdef _WIN32
 DWORD BASSENCDEF(BASS_Encode_GetACMFormat)(DWORD handle, void *form, DWORD formlen, const char *title, DWORD flags);
@@ -171,7 +182,7 @@ void *BASSENCDEF(BASS_Encode_GetCARef)(DWORD handle);
 #endif
 
 #ifndef _WIN32_WCE
-BOOL BASSENCDEF(BASS_Encode_CastInit)(HENCODE handle, const char *server, const char *pass, const char *content, const char *name, const char *url, const char *genre, const char *desc, const char *headers, DWORD bitrate, BOOL pub);
+BOOL BASSENCDEF(BASS_Encode_CastInit)(HENCODE handle, const char *server, const char *pass, const char *content, const char *name, const char *url, const char *genre, const char *desc, const char *headers, DWORD bitrate, DWORD flags);
 BOOL BASSENCDEF(BASS_Encode_CastSetTitle)(HENCODE handle, const char *title, const char *url);
 BOOL BASSENCDEF(BASS_Encode_CastSendMeta)(HENCODE handle, DWORD type, const void *data, DWORD length);
 const char *BASSENCDEF(BASS_Encode_CastGetStats)(HENCODE handle, DWORD type, const char *pass);
@@ -209,6 +220,10 @@ static inline HENCODE BASS_Encode_StartACMFile(DWORD handle, const void *form, D
 	return BASS_Encode_StartACMFile(handle, form, flags|BASS_UNICODE, (const char *)filename);
 }
 #endif
+#endif
+
+#ifdef __OBJC__
+#undef BOOL
 #endif
 
 #endif
