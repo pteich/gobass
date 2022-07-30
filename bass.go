@@ -103,7 +103,7 @@ func StreamCreateURL(url string, flags Flags) (Channel, error) {
 func (ch Channel) SetSync(syncType int, flags Flags, param int, callback *C.SYNCPROC, userdata unsafe.Pointer) (Sync, error) {
 	sync := Sync(C.BASS_ChannelSetSync(ch.cint(), cuint(syncType), culong(param|int(flags)), callback, userdata))
 	if sync == 0 {
-		return 0, errMsg()
+		return 0, ErrMsg()
 	} else {
 		return sync, nil
 	}
@@ -172,7 +172,7 @@ func (ch Channel) Stop() error {
 func (ch Channel) IsActive() (int, error) {
 	active := int(C.BASS_ChannelIsActive(ch.cint()))
 	if active == ACTIVE_STOPPED {
-		return active, errMsg()
+		return active, ErrMsg()
 	} else {
 		return active, nil
 	}
@@ -197,7 +197,7 @@ func (ch Channel) SetAttribute(attrib int, value float64) error {
 func (ch Channel) GetLevel() (c int, e error) {
 	c = int(C.BASS_ChannelGetLevel(ch.cint()))
 	if c == -1 {
-		return 0, errMsg()
+		return 0, ErrMsg()
 	}
 	return c, nil
 }
@@ -214,7 +214,7 @@ func (ch Channel) ChannelGetInfo() (C.BASS_CHANNELINFO, error) {
 	if C.BASS_ChannelGetInfo(C.DWORD(ch), &chInfo) != 0 {
 		return chInfo, nil
 	}
-	return chInfo, errMsg()
+	return chInfo, ErrMsg()
 }
 
 // PluginLoad
@@ -222,7 +222,7 @@ func PluginLoad(file string, flags Flags) (handle uint32, err error) {
 	cfile := C.CString(file)
 	plugin := C.BASS_PluginLoad(cfile, cuint(flags))
 	C.free(unsafe.Pointer(cfile))
-	return uint32(plugin), errMsg()
+	return uint32(plugin), ErrMsg()
 }
 
 // PluginFree
@@ -247,7 +247,7 @@ func RecordFree() error {
 	return BoolToError(C.BASS_RecordFree())
 }
 
-func errMsg() error {
+func ErrMsg() error {
 	c := Error(C.BASS_ErrorGetCode())
 	if c == 0 {
 		return nil
@@ -258,7 +258,7 @@ func errMsg() error {
 
 // Returns the last error, if any, that was caused by a call to a BASS function. You should not normally call this function, all BASS functions in this package handle and return errors.
 func GetLastError() error {
-	return errMsg()
+	return ErrMsg()
 }
 func (ch Channel) StreamFree() error {
 	return BoolToError(C.BASS_StreamFree(ch.cint()))
@@ -275,7 +275,7 @@ func (ch Channel) GetPosition(mode uint64) (int, error) {
 
 	value := C.BASS_ChannelGetPosition(ch.cint(), C.DWORD(mode))
 	if value+1 == 0 {
-		return 0, errMsg()
+		return 0, ErrMsg()
 	} else {
 		return int(value), nil
 	}
@@ -307,7 +307,7 @@ func IsStarted() bool {
 func (ch Channel) Bytes2Seconds(bytes int) (float64, error) {
 	value := float64(C.BASS_ChannelBytes2Seconds(ch.cint(), C.QWORD(bytes)))
 	if value < 0 {
-		return value, errMsg()
+		return value, ErrMsg()
 	} else {
 		return value, nil
 	}
@@ -315,7 +315,7 @@ func (ch Channel) Bytes2Seconds(bytes int) (float64, error) {
 func (ch Channel) GetLength(mode uint64) (int, error) {
 	result := C.BASS_ChannelGetLength(ch.cint(), C.DWORD(mode))
 	if result+1 == 0 {
-		return 0, errMsg()
+		return 0, ErrMsg()
 	} else {
 		return int(result), nil
 	}
@@ -329,13 +329,13 @@ func (ch Channel) IsSliding(attrib uint32) bool {
 func (ch Channel) Seconds2Bytes(pos float64) (int, error) {
 	val := int(C.BASS_ChannelSeconds2Bytes(ch.cint(), C.double(pos)))
 	if val < 0 {
-		return 0, errMsg()
+		return 0, ErrMsg()
 	} else {
 		return val, nil
 	}
 }
 func (ch Channel) Flags(flags, mask Flags) (Flags, error) {
-	return Flags(C.BASS_ChannelFlags(ch.cint(), cuint(flags), cuint(mask))), errMsg()
+	return Flags(C.BASS_ChannelFlags(ch.cint(), cuint(flags), cuint(mask))), ErrMsg()
 }
 
 // CopyBytes allocates C memory and coppies data to that C memory.
@@ -348,13 +348,15 @@ func GetDevice() (int64, error) {
 func SetDevice(device int) error {
 	return BoolToError(C.BASS_SetDevice(C.DWORD(device)))
 }
+
 func BoolToError(value C.BOOL) error {
 	if value == 0 {
-		return errMsg()
+		return ErrMsg()
 	} else {
 		return nil
 	}
 }
+
 func pairToError(value C.int) (int, error) {
 	return int(value), BoolToError(value)
 }
@@ -375,7 +377,7 @@ func longlongPairToError(value C.QWORD) (int64, error) {
 }
 func intToError(value cuint) error {
 	if value == 0 {
-		return errMsg()
+		return ErrMsg()
 	} else {
 		return nil
 	}
@@ -387,7 +389,7 @@ func longToError(value culong) error {
 	if value != 0 {
 		return nil
 	} else {
-		return errMsg()
+		return ErrMsg()
 	}
 }
 func StreamCreate(freq, chans int, flags Flags, streamproc *C.STREAMPROC, userdata unsafe.Pointer) (Channel, error) {
@@ -406,7 +408,7 @@ func (ch Channel) StreamPutData(data []byte, flags Flags) (int, error) {
 	}
 	val := C.BASS_StreamPutData(ch.cint(), ptr, C.DWORD(len(data)|int(flags)))
 	if val+1 == 0 { // -1 indicates an error, but this is an unsigned integer
-		return 0, errMsg()
+		return 0, ErrMsg()
 	} else {
 		return int(val), nil
 	}
@@ -418,7 +420,7 @@ func (ch Channel) GetData(data []byte, flags Flags) (int, error) {
 	}
 	val := C.BASS_ChannelGetData(ch.cint(), ptr, C.DWORD(len(data)|int(flags)))
 	if val+1 == 0 { // -1 indicates an error, but this is an unsigned integer
-		return 0, errMsg()
+		return 0, ErrMsg()
 	} else {
 		return int(val), nil
 	}
@@ -514,7 +516,7 @@ func (f Flags) Has(flag int) bool {
 	return int(f)&flag == flag
 }
 
-// getHighWord Some of BASS functions like to put multiple values into a single integer
+// getHighWord some of BASS functions like to put multiple values into a single integer
 func getHighWord(v C.DWORD) uint8 {
 	v = v >> 8
 	ptr := (*uint8)(unsafe.Pointer(&v))

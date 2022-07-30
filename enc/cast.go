@@ -11,16 +11,24 @@ import (
 	bass "github.com/pteich/gobass"
 )
 
+type EncodeType string
+
+const (
+	EncodeTypeMP3 EncodeType = "audio/mpeg"
+	EncodeTypeOGG EncodeType = "audio/ogg"
+	EncodeTypeAAC EncodeType = "audio/aacp"
+)
+
 type CastConfig struct {
 	Server      string
 	Password    string
-	ContentType string
+	ContentType EncodeType
 	Name        string
 	Url         string
 	Genre       string
 	Description string
 	Headers     string
-	Bitrate     int
+	Bitrate     uint32
 	Public      bool
 }
 
@@ -29,7 +37,7 @@ func CastInit(encoder Encoder, cfg CastConfig) error {
 	defer C.free(unsafe.Pointer(serverC))
 	passwordC := C.CString(cfg.Password)
 	defer C.free(unsafe.Pointer(passwordC))
-	mimeC := C.CString(cfg.ContentType)
+	mimeC := C.CString(string(cfg.ContentType))
 	defer C.free(unsafe.Pointer(mimeC))
 	nameC := C.CString(cfg.Name)
 	defer C.free(unsafe.Pointer(nameC))

@@ -1,6 +1,7 @@
 //Contains optimized functions which can do multiple things in one CGO call.
 
 package bass
+
 /*
 #include "bass.h"
 static int _BassOptimizeSetPanVolumePitch(HCHANNEL chan, float pan, float volume, float pitch) {
@@ -13,9 +14,9 @@ return 0;
 import "C"
 
 func OptimizeSetPanVolumePitch(self Channel, pan, volume, pitch float64) error {
-	if C._BassOptimizeSetPanVolumePitch(self.cint(), C.float(pan), C.float(volume), C.float(pitch))==0 {
+	if C._BassOptimizeSetPanVolumePitch(self.cint(), C.float(pan), C.float(volume), C.float(pitch)) == 0 {
 		return nil
 	} else {
-		return errMsg()
+		return ErrMsg()
 	}
 }

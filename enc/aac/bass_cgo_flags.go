@@ -7,7 +7,7 @@ package aac
 #cgo windows,386 LDFLAGS: -L${SRCDIR}/../../lib/windows_386
 #cgo windows,amd64 LDFLAGS: -L${SRCDIR}/../../lib/windows_amd64
 #cgo darwin LDFLAGS: -L${SRCDIR}/../../lib/darwin
-#cgo LDFLAGS: -lbassenc_mp3
+#cgo LDFLAGS: -lbassenc_aac
 
 #cgo CFLAGS: -I${SRCDIR}/../../include
 */
